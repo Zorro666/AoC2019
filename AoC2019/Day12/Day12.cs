@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 
 /*
@@ -181,6 +182,47 @@ pot: 29 + 11 +  1 = 41;   kin: 3 +  7 + 4 = 14;   total: 41 * 14 = 574
 pot: 16 + 13 + 23 = 52;   kin: 7 +  1 + 1 =  9;   total: 52 *  9 = 468
 Sum of total energy: 290 + 608 + 574 + 468 = 1940
 What is the total energy in the system after simulating the moons given in your scan for 1000 steps?
+ 
+--- Part Two ---
+
+All this drifting around in space makes you wonder about the nature of the universe. Does history really repeat itself? You're curious whether the moons will ever return to a previous state.
+
+Determine the number of steps that must occur before all of the moons' positions and velocities exactly match a previous point in time.
+
+For example, the first example above takes 2772 steps before they exactly match a previous point in time; it eventually returns to the initial state:
+
+After 0 steps:
+pos=<x= -1, y=  0, z=  2>, vel=<x=  0, y=  0, z=  0>
+pos=<x=  2, y=-10, z= -7>, vel=<x=  0, y=  0, z=  0>
+pos=<x=  4, y= -8, z=  8>, vel=<x=  0, y=  0, z=  0>
+pos=<x=  3, y=  5, z= -1>, vel=<x=  0, y=  0, z=  0>
+
+After 2770 steps:
+pos=<x=  2, y= -1, z=  1>, vel=<x= -3, y=  2, z=  2>
+pos=<x=  3, y= -7, z= -4>, vel=<x=  2, y= -5, z= -6>
+pos=<x=  1, y= -7, z=  5>, vel=<x=  0, y= -3, z=  6>
+pos=<x=  2, y=  2, z=  0>, vel=<x=  1, y=  6, z= -2>
+
+After 2771 steps:
+pos=<x= -1, y=  0, z=  2>, vel=<x= -3, y=  1, z=  1>
+pos=<x=  2, y=-10, z= -7>, vel=<x= -1, y= -3, z= -3>
+pos=<x=  4, y= -8, z=  8>, vel=<x=  3, y= -1, z=  3>
+pos=<x=  3, y=  5, z= -1>, vel=<x=  1, y=  3, z= -1>
+
+After 2772 steps:
+pos=<x= -1, y=  0, z=  2>, vel=<x=  0, y=  0, z=  0>
+pos=<x=  2, y=-10, z= -7>, vel=<x=  0, y=  0, z=  0>
+pos=<x=  4, y= -8, z=  8>, vel=<x=  0, y=  0, z=  0>
+pos=<x=  3, y=  5, z= -1>, vel=<x=  0, y=  0, z=  0>
+Of course, the universe might last for a very long time before repeating. Here's a copy of the second example from above:
+
+<x=-8, y=-10, z=0>
+<x=5, y=5, z=10>
+<x=2, y=-7, z=3>
+<x=9, y=-8, z=-3>
+This set of initial positions takes 4686774924 steps before it repeats a previous state! Clearly, you might need to find a more efficient way to simulate the universe.
+
+How many steps does it take to reach the first state that exactly matches a previous state?
 
 */
 
@@ -188,15 +230,293 @@ namespace Day12
 {
     class Program
     {
+        static (int PosX, int PosY, int PosZ, int VelX, int VelY, int VelZ)[] bodies;
+        static List<(int Pos, int Vel)[]> previousStates;
+
+        public static (int PosX, int PosY, int PosZ, int VelX, int VelY, int VelZ) GetBody(int body)
+        {
+            return bodies[body];
+        }
+
         private Program(string inputFile, bool part1)
         {
-            var elements = ReadProgram(inputFile);
+            var lines = ReadProgram(inputFile);
+            ParseInput(lines);
+            if (part1)
+            {
+                var result = Simulate(1000);
+                Console.WriteLine($"Day12 : Part1 {result}");
+            }
+            else
+            {
+                var result = FindLoopPoint();
+                Console.WriteLine($"Day12 : Part2 {result}");
+            }
         }
 
         private string[] ReadProgram(string inputFile)
         {
-            var elements = File.ReadAllLines(inputFile);
-            return elements;
+            var lines = File.ReadAllLines(inputFile);
+            return lines;
+        }
+
+        public static void ParseInput(string[] lines)
+        {
+            List<(int PosX, int PosY, int PosZ, int VelX, int VelY, int VelZ)> bodyList = new List<(int PosX, int PosY, int PosZ, int VelX, int VelY, int VelZ)>();
+            /*
+			<x=-1, y=0, z=2>
+			<x=2, y=-10, z=-7>
+			<x=4, y=-8, z=8>
+			<x=3, y=5, z=-1>
+			*/
+            foreach (var line in lines)
+            {
+                var data = line.Trim();
+                if (string.IsNullOrEmpty(line))
+                {
+                    throw new InvalidDataException($"Body line must not be empty");
+                }
+                if (data.Length < 2)
+                {
+                    throw new InvalidDataException($"Body line must be at least 2 characters {data.Length}");
+                }
+                if (data[0] != '<')
+                {
+                    throw new InvalidDataException($"Body line must start with '<' {data[0]}");
+                }
+                if (data[data.Length - 1] != '>')
+                {
+                    throw new InvalidDataException($"Body line must start with '<' {data[data.Length - 1]}");
+                }
+                data = data.Substring(1, data.Length - 2);
+                var tokens = data.Split(',');
+
+                var xTokens = tokens[0].Split('=');
+                if (xTokens[0].Trim() != "x")
+                {
+                    throw new InvalidDataException($"Body xToken must start with 'x' {xTokens[0]}");
+                }
+                var x = int.Parse(xTokens[1]);
+
+                var yTokens = tokens[1].Split('=');
+                if (yTokens[0].Trim() != "y")
+                {
+                    throw new InvalidDataException($"Body yToken must start with 'y' {yTokens[0]}");
+                }
+                var y = int.Parse(yTokens[1]);
+
+                var zTokens = tokens[2].Split('=');
+                if (zTokens[0].Trim() != "z")
+                {
+                    throw new InvalidDataException($"Body zToken must start with 'z' {zTokens[0]}");
+                }
+                var z = int.Parse(zTokens[1]);
+                bodyList.Add((x, y, z, 0, 0, 0));
+            }
+            bodies = bodyList.ToArray();
+        }
+
+        static (int Pos, int Vel)[] GetState(int axis)
+        {
+            var bodyCount = bodies.Length;
+            var state = new (int Pos, int Vel)[bodyCount];
+            for (var i = 0; i < bodyCount; ++i)
+            {
+                ref var body = ref bodies[i];
+                if (axis == 0)
+                {
+                    state[i].Pos = body.PosX;
+                    state[i].Vel = body.VelX;
+                }
+                else if (axis == 1)
+                {
+                    state[i].Pos = body.PosY;
+                    state[i].Vel = body.VelY;
+                }
+                else if (axis == 2)
+                {
+                    state[i].Pos = body.PosZ;
+                    state[i].Vel = body.VelZ;
+                }
+                else
+                {
+                    throw new ArgumentOutOfRangeException($"Invalid value {axis}", "axis");
+                }
+            }
+            return state;
+        }
+
+        static bool MatchState((int Pos, int Vel)[] state)
+        {
+            var stateLength = state.Length;
+            foreach (var previousState in previousStates)
+            {
+                if (previousState.Length != stateLength)
+                {
+                    continue;
+                }
+                var matchCount = 0;
+                for (int i = 0; i < stateLength; ++i)
+                {
+                    ref var stateI = ref state[i];
+                    ref var stateJ = ref previousState[i];
+                    if (stateI.Pos != stateJ.Pos)
+                    {
+                        break;
+                    }
+                    if (stateI.Vel != stateJ.Vel)
+                    {
+                        break;
+                    }
+                    ++matchCount;
+                }
+                if (matchCount == stateLength)
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        static Int64 HCF(Int64 a, Int64 b)
+        {
+            if (a == 0)
+            {
+                return b;
+            }
+            if (b == 0)
+            {
+                return a;
+            }
+
+            if (a == b)
+            {
+                return a;
+            }
+
+            if (a > b)
+            {
+                return HCF(a - b, b);
+            }
+            return HCF(a, b - a);
+        }
+
+        public static Int64 FindLoopPoint()
+        {
+            Int64 loopX = FindLoopPointForAxis(0);
+            Console.WriteLine($"loopX {loopX}");
+            Int64 loopY = FindLoopPointForAxis(1);
+            Console.WriteLine($"loopY {loopY}");
+            Int64 loopZ = FindLoopPointForAxis(2);
+            Console.WriteLine($"loopZ {loopZ}");
+            var loop = loopX;
+            var hcf = HCF(loop, loopY);
+            loop = (loop * loopY) / hcf;
+            hcf = HCF(loop, loopZ);
+            loop = (loop * loopZ) / hcf;
+            return loop;
+        }
+
+        static Int64 FindLoopPointForAxis(int axis)
+        {
+            previousStates = new List<(int Pos, int Vel)[]>();
+            var loop = 0;
+            while (loop < 1024 * 512)
+            {
+                if (loop % 10000 == 0)
+                {
+                    Console.WriteLine($"axis {axis} loop {loop}");
+                }
+                var currentState = GetState(axis);
+                if (MatchState(currentState))
+                {
+                    previousStates = null;
+                    return loop;
+                }
+                previousStates.Add(currentState);
+                SimulateOneStep();
+                ++loop;
+            }
+            throw new InvalidDataException($"Could not find loop point for axis {axis} loop {loop}");
+        }
+
+        public static int Simulate(int numSteps)
+        {
+            var energy = 0;
+            for (int s = 0; s < numSteps; ++s)
+            {
+                energy = SimulateOneStep();
+            }
+            return energy;
+        }
+
+        public static int SimulateOneStep()
+        {
+            var bodyCount = bodies.Length;
+            for (var i = 0; i < bodyCount - 1; ++i)
+            {
+                ref var bodyI = ref bodies[i];
+                for (var j = i + 1; j < bodyCount; ++j)
+                {
+                    ref var bodyJ = ref bodies[j];
+
+                    if (bodyI.PosX > bodyJ.PosX)
+                    {
+                        --bodyI.VelX;
+                        ++bodyJ.VelX;
+                    }
+                    else if (bodyI.PosX < bodyJ.PosX)
+                    {
+                        ++bodyI.VelX;
+                        --bodyJ.VelX;
+                    }
+
+                    if (bodyI.PosY > bodyJ.PosY)
+                    {
+                        --bodyI.VelY;
+                        ++bodyJ.VelY;
+                    }
+                    else if (bodyI.PosY < bodyJ.PosY)
+                    {
+                        ++bodyI.VelY;
+                        --bodyJ.VelY;
+                    }
+
+                    if (bodyI.PosZ > bodyJ.PosZ)
+                    {
+                        --bodyI.VelZ;
+                        ++bodyJ.VelZ;
+                    }
+                    else if (bodyI.PosZ < bodyJ.PosZ)
+                    {
+                        ++bodyI.VelZ;
+                        --bodyJ.VelZ;
+                    }
+                }
+            }
+
+            for (var i = 0; i < bodyCount; ++i)
+            {
+                ref var body = ref bodies[i];
+                body.PosX += body.VelX;
+                body.PosY += body.VelY;
+                body.PosZ += body.VelZ;
+            }
+            return GetEnergy();
+        }
+
+        public static int GetEnergy()
+        {
+            var bodyCount = bodies.Length;
+            var totalEnergy = 0;
+            for (var i = 0; i < bodyCount; ++i)
+            {
+                var body = bodies[i];
+                var potential = Math.Abs(body.PosX) + Math.Abs(body.PosY) + Math.Abs(body.PosZ);
+                var kinetic = Math.Abs(body.VelX) + Math.Abs(body.VelY) + Math.Abs(body.VelZ);
+                totalEnergy += potential * kinetic;
+            }
+            return totalEnergy;
         }
 
         public static void Run()
