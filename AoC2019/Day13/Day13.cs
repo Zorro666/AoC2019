@@ -41,13 +41,14 @@ namespace Day13
     {
         static int MAX_SCREEN_SIZE = 1024;
         static int[,] screen;
+        static int score;
 
         private Program(string inputFile, bool part1)
         {
             var source = ReadProgram(inputFile);
             if (part1)
             {
-                RunProgram(source);
+                RunProgram(source, false);
                 var result = CountBlocks();
                 Console.WriteLine($"Day13 : Result1 {result}");
                 if (result != 296)
@@ -57,9 +58,9 @@ namespace Day13
             }
             else
             {
-                RunProgram(source);
-                var result = -666;
-                Console.WriteLine($"Day13 : Result2 {result}");
+                RunProgram(source, true);
+                Console.WriteLine($"Day13 : BlockCount {CountBlocks()}");
+                Console.WriteLine($"Day13 : Result2 {score}");
             }
         }
 
@@ -95,20 +96,30 @@ namespace Day13
             return result;
         }
 
-        static public void RunProgram(string source)
+        static public void RunProgram(string source, bool part2)
         {
             screen = new int[MAX_SCREEN_SIZE, MAX_SCREEN_SIZE];
             var data = ConvertSourceStringToInts(source);
+            if (part2)
+            {
+                data[0] = 2;
+            }
             Int64 relativeBase = 0;
             Int64 pc = 0;
             bool halt = false;
             int outputPhase = 0;
             int screenX = MAX_SCREEN_SIZE / 2;
             int screenY = MAX_SCREEN_SIZE / 2;
+            int paddleX = -1;
+            int paddleY = -1;
+            int ballX = -1;
+            int ballY = -1;
+            int joystick = 0;
             while (!halt)
             {
                 bool hasOutput = false;
-                var output = RunProgram(ref data, ref pc, ref relativeBase, ref halt, ref hasOutput);
+                int input = joystick;
+                var output = RunProgram(ref data, ref pc, ref relativeBase, input, ref halt, ref hasOutput);
                 if (halt && hasOutput)
                 {
                     throw new InvalidDataException($"halt and hasOutput can't be both true pc:{pc}");
@@ -138,11 +149,54 @@ namespace Day13
                 }
                 else if (outputPhase == 2)
                 {
-                    screen[screenX, screenY] = (int)output;
+                    if ((screenX == -1) && (screenY == 0))
+                    {
+                        score = (int)output;
+                    }
+                    else
+                    {
+                        screen[screenX, screenY] = (int)output;
+                        //3 is a horizontal paddle tile. The paddle is indestructible.
+                        if (output == 3)
+                        {
+                            paddleX = screenX;
+                            paddleY = screenY;
+                            OutputScreen();
+                        }
+                        //4 is a ball tile. The ball moves diagonally and bounces off objects.
+                        if (output == 4)
+                        {
+                            ballX = screenX;
+                            ballY = screenY;
+                            OutputScreen();
+                        }
+                        /*
+						If the joystick is in the neutral position, provide 0.
+						If the joystick is tilted to the left, provide -1.
+						If the joystick is tilted to the right, provide 1.
+						*/
+                        if (ballX < paddleX)
+                        {
+                            joystick = -1;
+                        }
+                        else if (ballX > paddleX)
+                        {
+                            joystick = +1;
+                        }
+                        else if (ballX == paddleX)
+                        {
+                            joystick = 0;
+                        }
+                        if (ballY > paddleY)
+                        {
+                            joystick = 0;
+                        }
+                    }
                     outputPhase = 0;
                 }
             }
             OutputScreen();
+            return;
         }
 
         static int CountBlocks()
@@ -180,7 +234,6 @@ namespace Day13
                     }
                 }
             }
-            Console.WriteLine($"{minX},{minY} -> {maxX},{maxY}");
             for (int y = minY; y <= maxY; ++y)
             {
                 string line = "";
@@ -218,35 +271,10 @@ namespace Day13
                 }
                 Console.WriteLine(line);
             }
+            Console.WriteLine($"Score {score}");
         }
 
-        // turn : 0 = turn left , 1 = turn right
-        static public void TurnRobot(Int64 turn, ref int robotDX, ref int robotDY)
-        {
-            // Turn 0 = Left
-            //  0 , -1 => -1,  0
-            // -1 ,  0 =>  0, +1
-            //  0 , +1 => +1,  0
-            // +1 ,  0 =>  0, -1
-            //newDX = oldDY;
-            //newDY = -oldDX;
-
-            // Turn 1 = Right
-            //  0 , -1 => +1,  0
-            // +1 ,  0 =>  0, +1
-            //  0 , +1 => -1,  0
-            // -1 ,  0 =>  0, -1
-            //newDX = -oldDY;
-            //newDY = oldDX;
-
-            int newDX = turn == 0 ? robotDY : -robotDY;
-            int newDY = turn == 0 ? -robotDX : robotDX;
-
-            robotDX = newDX;
-            robotDY = newDY;
-        }
-
-        static public Int64 RunProgram(ref Int64[] data, ref Int64 pc, ref Int64 relativeBase, ref bool halt, ref bool hasOutput)
+        static public Int64 RunProgram(ref Int64[] data, ref Int64 pc, ref Int64 relativeBase, int input, ref bool halt, ref bool hasOutput)
         {
             Int64 instruction = data[pc];
             Int64 result = -666;
@@ -302,14 +330,11 @@ namespace Day13
                 }
                 else if (opcode == 3)
                 {
-                    throw new InvalidDataException($"input instruction not supported {pc}");
-                    /*
                     Int64 param1Index = data[pc + 1];
                     Int64 index = GetOutputIndex(relativeBase, param1Mode, param1Index);
                     MakeDataBigEnough(ref data, index);
                     data[index] = input;
                     pc += 2;
-                    */
                 }
                 else if (opcode == 4)
                 {
