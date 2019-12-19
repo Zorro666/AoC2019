@@ -4,31 +4,111 @@
     {
         static void Main(string[] args)
         {
-            Day01.Program.Run();
-            Day02.Program.Run();
-            Day03.Program.Run();
-            Day04.Program.Run();
-            Day05.Program.Run();
-            Day06.Program.Run();
-            Day07.Program.Run();
-            Day08.Program.Run();
-            Day09.Program.Run();
-            Day10.Program.Run();
-            Day11.Program.Run();
-            Day12.Program.Run();
-            Day13.Program.Run();
-            Day14.Program.Run();
-            Day15.Program.Run();
-            Day16.Program.Run();
-            Day17.Program.Run();
-            Day18.Program.Run();
-            Day19.Program.Run();
-            Day20.Program.Run();
-            Day21.Program.Run();
-            Day22.Program.Run();
-            Day23.Program.Run();
-            Day24.Program.Run();
-            Day25.Program.Run();
+            var day = -1;
+            if (args.Length == 1)
+            {
+                day = int.Parse(args[0]);
+            }
+            if ((day == -1) || (day == 1))
+            {
+                Day01.Program.Run();
+            }
+            if ((day == -1) || (day == 2))
+            {
+                Day02.Program.Run();
+            }
+            if ((day == -1) || (day == 3))
+            {
+                Day03.Program.Run();
+            }
+            if ((day == -1) || (day == 4))
+            {
+                Day04.Program.Run();
+            }
+            if ((day == -1) || (day == 5))
+            {
+                Day05.Program.Run();
+            }
+            if ((day == -1) || (day == 6))
+            {
+                Day06.Program.Run();
+            }
+            if ((day == -1) || (day == 7))
+            {
+                Day07.Program.Run();
+            }
+            if ((day == -1) || (day == 8))
+            {
+                Day08.Program.Run();
+            }
+            if ((day == -1) || (day == 9))
+            {
+                Day09.Program.Run();
+            }
+            if ((day == -1) || (day == 10))
+            {
+                Day10.Program.Run();
+            }
+            if ((day == -1) || (day == 11))
+            {
+                Day11.Program.Run();
+            }
+            if ((day == -1) || (day == 12))
+            {
+                Day12.Program.Run();
+            }
+            if ((day == -1) || (day == 13))
+            {
+                Day13.Program.Run();
+            }
+            if ((day == -1) || (day == 14))
+            {
+                Day14.Program.Run();
+            }
+            if ((day == -1) || (day == 15))
+            {
+                Day15.Program.Run();
+            }
+            if ((day == -1) || (day == 16))
+            {
+                Day16.Program.Run();
+            }
+            if ((day == -1) || (day == 17))
+            {
+                Day17.Program.Run();
+            }
+            if ((day == -1) || (day == 18))
+            {
+                Day18.Program.Run();
+            }
+            if ((day == -1) || (day == 19))
+            {
+                Day19.Program.Run();
+            }
+            if ((day == -1) || (day == 20))
+            {
+                Day20.Program.Run();
+            }
+            if ((day == -1) || (day == 21))
+            {
+                Day21.Program.Run();
+            }
+            if ((day == -1) || (day == 22))
+            {
+                Day22.Program.Run();
+            }
+            if ((day == -1) || (day == 23))
+            {
+                Day23.Program.Run();
+            }
+            if ((day == -1) || (day == 24))
+            {
+                Day24.Program.Run();
+            }
+            if ((day == -1) || (day == 25))
+            {
+                Day25.Program.Run();
+            }
         }
     }
 }
