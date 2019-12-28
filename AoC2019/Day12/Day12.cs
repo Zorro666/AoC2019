@@ -340,7 +340,7 @@ namespace Day12
                 }
                 else
                 {
-                    throw new ArgumentOutOfRangeException($"Invalid value {axis}", "axis");
+                    throw new ArgumentOutOfRangeException("axis", $"Invalid value {axis}");
                 }
             }
             return state;

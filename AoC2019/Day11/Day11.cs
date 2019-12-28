@@ -275,15 +275,15 @@ namespace Day11
 
                 if ((param1Mode != 0) && (param1Mode != 1) && (param1Mode != 2))
                 {
-                    throw new ArgumentOutOfRangeException($"Invalid param1Mode:{param1Mode}");
+                    throw new ArgumentOutOfRangeException("param1Mode", $"Invalid param1Mode:{param1Mode}");
                 }
                 if ((param2Mode != 0) && (param2Mode != 1) && (param2Mode != 2))
                 {
-                    throw new ArgumentOutOfRangeException($"Invalid param1Mode:{param2Mode}");
+                    throw new ArgumentOutOfRangeException("param2Mode", $"Invalid param1Mode:{param2Mode}");
                 }
                 if ((param3Mode != 0) && (param3Mode != 2))
                 {
-                    throw new ArgumentOutOfRangeException($"Invalid param3Mode:{param3Mode}");
+                    throw new ArgumentOutOfRangeException("param3Mode", $"Invalid param3Mode:{param3Mode}");
                 }
 
                 if (opcode == 1)
@@ -431,7 +431,7 @@ namespace Day11
             }
             else
             {
-                throw new ArgumentOutOfRangeException($"Invalid paramMode {paramMode}", "paramMode");
+                throw new ArgumentOutOfRangeException("paramMode", $"Invalid paramMode {paramMode}");
             }
             MakeDataBigEnough(ref data, index);
             return data[index];

@@ -159,7 +159,7 @@ namespace Day06
                 var parent = node.Value;
                 if (!String.IsNullOrEmpty(parent) && (parent != "COM") && !nodes.ContainsKey(parent))
                 {
-                    throw new ArgumentOutOfRangeException($"Parent does not exist {parent}", "parent");
+                    throw new ArgumentOutOfRangeException("parent", $"Parent does not exist {parent}");
                 }
             }
         }
@@ -168,7 +168,7 @@ namespace Day06
         {
             if (nodes.ContainsKey(node))
             {
-                throw new ArgumentOutOfRangeException($"Node already exists {node}", "node");
+                throw new ArgumentOutOfRangeException("node", $"Node already exists {node}");
             }
             nodes.Add(node, parent);
         }
@@ -177,7 +177,7 @@ namespace Day06
         {
             if (!nodes.ContainsKey(node))
             {
-                throw new ArgumentOutOfRangeException($"Node does not exist {node}", "node");
+                throw new ArgumentOutOfRangeException("node", $"Node does not exist {node}");
             }
             return nodes[node];
         }

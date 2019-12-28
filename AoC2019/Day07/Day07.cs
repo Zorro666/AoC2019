@@ -334,15 +334,15 @@ namespace Day07
 
                 if ((param1Mode != 0) && (param1Mode != 1))
                 {
-                    throw new ArgumentOutOfRangeException($"Invalid param1Mode:{param1Mode}");
+                    throw new ArgumentOutOfRangeException("param1Mode", $"Invalid param1Mode:{param1Mode}");
                 }
                 if ((param2Mode != 0) && (param2Mode != 1))
                 {
-                    throw new ArgumentOutOfRangeException($"Invalid param1Mode:{param2Mode}");
+                    throw new ArgumentOutOfRangeException("param2Mode", $"Invalid param1Mode:{param2Mode}");
                 }
                 if (param3Mode != 0)
                 {
-                    throw new ArgumentOutOfRangeException($"Invalid param3Mode:{param3Mode}");
+                    throw new ArgumentOutOfRangeException("param3Mode", $"Invalid param3Mode:{param3Mode}");
                 }
 
                 if (opcode == 1)
