@@ -128,9 +128,8 @@ namespace Day15
         static readonly int sStartY = MAX_MAP_SIZE / 2;
         static readonly int[,] sMap = new int[MAX_MAP_SIZE, MAX_MAP_SIZE];
         static readonly int[,] sMapExplored = new int[MAX_MAP_SIZE, MAX_MAP_SIZE];
-        static int sDistance = 0;
-        static int sNumberOfSteps = 0;
-        static Random sRandom = new Random();
+        static int sDistance;
+        static int sNumberOfSteps;
         static IntProgram sIntProgram = new IntProgram();
         enum Direction
         {
@@ -180,31 +179,27 @@ namespace Day15
         static bool MoveRobot(Direction direction, int currentX, int currentY)
         {
             (int newX, int newY) = GetNewPos(direction, currentX, currentY);
-            Int64 input = (Int64)direction;
-            var output = GetOutput(input);
+            long input = (long)direction;
+            long output = GetOutput(input);
             bool moved = true;
-            // Clear
-            if (output == 1)
+            switch (output)
             {
-                sMap[newX, newY] = 1;
+                case 1:
+                    sMap[newX, newY] = 1;
+                    break;
+                case 2:
+                    sMap[newX, newY] = 2;
+                    break;
+                case 0:
+                    sMap[newX, newY] = 3;
+                    newX = currentX;
+                    newY = currentY;
+                    moved = false;
+                    break;
+                default:
+                    throw new InvalidDataException($"Invalid output {output}");
             }
-            // Oxygen
-            else if (output == 2)
-            {
-                sMap[newX, newY] = 2;
-            }
-            // Wall
-            else if (output == 0)
-            {
-                sMap[newX, newY] = 3;
-                newX = currentX;
-                newY = currentY;
-                moved = false;
-            }
-            else
-            {
-                throw new InvalidDataException($"Invalid output {output}");
-            }
+
             OutputMap(newX, newY);
             return moved;
         }
@@ -259,53 +254,38 @@ namespace Day15
 
         static void MoveBack(Direction direction, int currentX, int currentY)
         {
-            if (direction == Direction.North)
+            switch (direction)
             {
-                MoveRobot(Direction.South, currentX, currentY);
-            }
-            else if (direction == Direction.South)
-            {
-                MoveRobot(Direction.North, currentX, currentY);
-            }
-            else if (direction == Direction.West)
-            {
-                MoveRobot(Direction.East, currentX, currentY);
-            }
-            else if (direction == Direction.East)
-            {
-                MoveRobot(Direction.West, currentX, currentY);
-            }
-            else
-            {
-                throw new InvalidDataException($"Invalid direction {direction}");
+                case Direction.North:
+                    MoveRobot(Direction.South, currentX, currentY);
+                    break;
+                case Direction.South:
+                    MoveRobot(Direction.North, currentX, currentY);
+                    break;
+                case Direction.West:
+                    MoveRobot(Direction.East, currentX, currentY);
+                    break;
+                case Direction.East:
+                    MoveRobot(Direction.West, currentX, currentY);
+                    break;
+                default:
+                    throw new InvalidDataException($"Invalid direction {direction}");
             }
         }
 
         static (int, int) GetNewPos(Direction direction, int posX, int posY)
         {
-            if (direction == Direction.North)
+            return direction switch
             {
-                return (posX, posY - 1);
-            }
-            else if (direction == Direction.South)
-            {
-                return (posX, posY + 1);
-            }
-            else if (direction == Direction.West)
-            {
-                return (posX - 1, posY);
-            }
-            else if (direction == Direction.East)
-            {
-                return (posX + 1, posY);
-            }
-            else
-            {
-                throw new InvalidDataException($"Invalid input {direction}");
-            }
+                Direction.North => (posX, posY - 1),
+                Direction.South => (posX, posY + 1),
+                Direction.West => (posX - 1, posY),
+                Direction.East => (posX + 1, posY),
+                _ => throw new InvalidDataException($"Invalid input {direction}"),
+            };
         }
 
-        static Int64 GetOutput(Int64 input)
+        static long GetOutput(Int64 input)
         {
             bool halt = false;
             bool hasOutput = false;

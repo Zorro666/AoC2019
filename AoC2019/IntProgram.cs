@@ -3,9 +3,9 @@ using System.IO;
 
 struct IntProgram
 {
-    Int64[] mData;
-    Int64 mRelativeBase;
-    Int64 mPC;
+    long[] mData;
+    long mRelativeBase;
+    long mPC;
 
     public void LoadProgram(string inputFile)
     {
@@ -16,170 +16,171 @@ struct IntProgram
     public void CreateProgram(string source)
     {
         var sourceElements = source.Split(',');
-        mData = new Int64[sourceElements.Length];
+        mData = new long[sourceElements.Length];
         var index = 0;
         foreach (var element in sourceElements)
         {
-            mData[index] = Int64.Parse(element);
+            mData[index] = long.Parse(element);
             index++;
         }
         mPC = 0;
         mRelativeBase = 0;
     }
 
-    public Int64 RunProgram(Int64 input, ref bool halt, ref bool hasOutput)
+    public long RunProgram(long input, ref bool halt, ref bool hasOutput)
     {
-        Int64 instruction = mData[mPC];
-        Int64 result = -666;
+        long instruction = mData[mPC];
+        long result = -666;
         while (instruction != 99)
         {
             if (mPC >= mData.Length)
             {
                 throw new InvalidDataException($"Invalid pc:{mPC}");
             }
-            Int64 opcode = instruction % 100;
-            Int64 param1Mode = (instruction / 100) % 10;
-            Int64 param2Mode = (instruction / 1000) % 10;
-            Int64 param3Mode = (instruction / 10000) % 10;
+            long opcode = instruction % 100;
+            long param1Mode = (instruction / 100) % 10;
+            long param2Mode = (instruction / 1000) % 10;
+            long param3Mode = (instruction / 10000) % 10;
 
             if ((param1Mode != 0) && (param1Mode != 1) && (param1Mode != 2))
             {
-                throw new ArgumentOutOfRangeException("param1Mode", $"Invalid param1Mode:{param1Mode}");
+                throw new ArgumentOutOfRangeException(nameof(param1Mode), $"Invalid param1Mode:{param1Mode}");
             }
             if ((param2Mode != 0) && (param2Mode != 1) && (param2Mode != 2))
             {
-                throw new ArgumentOutOfRangeException("param2Mode", $"Invalid param1Mode:{param2Mode}");
+                throw new ArgumentOutOfRangeException(nameof(param2Mode), $"Invalid param1Mode:{param2Mode}");
             }
             if ((param3Mode != 0) && (param3Mode != 2))
             {
-                throw new ArgumentOutOfRangeException("param3Mode", $"Invalid param3Mode:{param3Mode}");
+                throw new ArgumentOutOfRangeException(nameof(param3Mode), $"Invalid param3Mode:{param3Mode}");
             }
 
-            if (opcode == 1)
+            long param1Index;
+            long param2Index;
+            long param3Index;
+            long param1;
+            long param2;
+            long param3;
+            long output;
+            switch (opcode)
             {
-                Int64 param1Index = mData[mPC + 1];
-                Int64 param2Index = mData[mPC + 2];
-                Int64 param3Index = mData[mPC + 3];
-                Int64 param1 = GetParam(param1Mode, param1Index);
-                Int64 param2 = GetParam(param2Mode, param2Index);
-                Int64 param3 = GetOutputIndex(param3Mode, param3Index);
-                Int64 output = param1 + param2;
-                MakeDataBigEnough(param3);
-                mData[param3] = output;
-                mPC += 4;
+                case 1:
+                    param1Index = mData[mPC + 1];
+                    param2Index = mData[mPC + 2];
+                    param3Index = mData[mPC + 3];
+                    param1 = GetParam(param1Mode, param1Index);
+                    param2 = GetParam(param2Mode, param2Index);
+                    param3 = GetOutputIndex(param3Mode, param3Index);
+                    output = param1 + param2;
+                    MakeDataBigEnough(param3);
+                    mData[param3] = output;
+                    mPC += 4;
+                    break;
+                case 2:
+                    param1Index = mData[mPC + 1];
+                    param2Index = mData[mPC + 2];
+                    param3Index = mData[mPC + 3];
+                    param1 = GetParam(param1Mode, param1Index);
+                    param2 = GetParam(param2Mode, param2Index);
+                    param3 = GetOutputIndex(param3Mode, param3Index);
+                    output = param1 * param2;
+                    MakeDataBigEnough(param3);
+                    mData[param3] = output;
+                    mPC += 4;
+                    break;
+                case 3:
+                    param1Index = mData[mPC + 1];
+                    long index = GetOutputIndex(param1Mode, param1Index);
+                    MakeDataBigEnough(index);
+                    mData[index] = input;
+                    mPC += 2;
+                    break;
+                case 4:
+                    param1Index = mData[mPC + 1];
+                    param1 = GetParam(param1Mode, param1Index);
+                    result = param1;
+                    hasOutput = true;
+                    mPC += 2;
+                    return result;
+                case 5:
+                    param1Index = mData[mPC + 1];
+                    param2Index = mData[mPC + 2];
+                    param1 = GetParam(param1Mode, param1Index);
+                    param2 = GetParam(param2Mode, param2Index);
+                    if (param1 != 0)
+                    {
+                        mPC = param2;
+                    }
+                    else
+                    {
+                        mPC += 3;
+                    }
+
+                    break;
+                case 6:
+                    param1Index = mData[mPC + 1];
+                    param2Index = mData[mPC + 2];
+                    param1 = GetParam(param1Mode, param1Index);
+                    param2 = GetParam(param2Mode, param2Index);
+                    if (param1 == 0)
+                    {
+                        mPC = param2;
+                    }
+                    else
+                    {
+                        mPC += 3;
+                    }
+
+                    break;
+                case 7:
+                    param1Index = mData[mPC + 1];
+                    param2Index = mData[mPC + 2];
+                    param3Index = mData[mPC + 3];
+                    param1 = GetParam(param1Mode, param1Index);
+                    param2 = GetParam(param2Mode, param2Index);
+                    param3 = GetOutputIndex(param3Mode, param3Index);
+                    output = 0;
+                    if (param1 < param2)
+                    {
+                        output = 1;
+                    }
+                    MakeDataBigEnough(param3);
+                    mData[param3] = output;
+                    mPC += 4;
+                    break;
+                case 8:
+                    param1Index = mData[mPC + 1];
+                    param2Index = mData[mPC + 2];
+                    param3Index = mData[mPC + 3];
+                    param1 = GetParam(param1Mode, param1Index);
+                    param2 = GetParam(param2Mode, param2Index);
+                    param3 = GetOutputIndex(param3Mode, param3Index);
+                    output = 0;
+                    if (param1 == param2)
+                    {
+                        output = 1;
+                    }
+                    MakeDataBigEnough(param3);
+                    mData[param3] = output;
+                    mPC += 4;
+                    break;
+                case 9:
+                    param1Index = mData[mPC + 1];
+                    param1 = GetParam(param1Mode, param1Index);
+                    mRelativeBase += param1;
+                    mPC += 2;
+                    break;
+                default:
+                    throw new InvalidDataException($"Unknown opcode:{opcode}");
             }
-            else if (opcode == 2)
-            {
-                Int64 param1Index = mData[mPC + 1];
-                Int64 param2Index = mData[mPC + 2];
-                Int64 param3Index = mData[mPC + 3];
-                Int64 param1 = GetParam(param1Mode, param1Index);
-                Int64 param2 = GetParam(param2Mode, param2Index);
-                Int64 param3 = GetOutputIndex(param3Mode, param3Index);
-                Int64 output = param1 * param2;
-                MakeDataBigEnough(param3);
-                mData[param3] = output;
-                mPC += 4;
-            }
-            else if (opcode == 3)
-            {
-                Int64 param1Index = mData[mPC + 1];
-                Int64 index = GetOutputIndex(param1Mode, param1Index);
-                MakeDataBigEnough(index);
-                mData[index] = input;
-                mPC += 2;
-            }
-            else if (opcode == 4)
-            {
-                Int64 param1Index = mData[mPC + 1];
-                Int64 param1 = GetParam(param1Mode, param1Index);
-                result = param1;
-                hasOutput = true;
-                mPC += 2;
-                return result;
-            }
-            else if (opcode == 5)
-            {
-                Int64 param1Index = mData[mPC + 1];
-                Int64 param2Index = mData[mPC + 2];
-                Int64 param1 = GetParam(param1Mode, param1Index);
-                Int64 param2 = GetParam(param2Mode, param2Index);
-                if (param1 != 0)
-                {
-                    mPC = param2;
-                }
-                else
-                {
-                    mPC += 3;
-                }
-            }
-            else if (opcode == 6)
-            {
-                Int64 param1Index = mData[mPC + 1];
-                Int64 param2Index = mData[mPC + 2];
-                Int64 param1 = GetParam(param1Mode, param1Index);
-                Int64 param2 = GetParam(param2Mode, param2Index);
-                if (param1 == 0)
-                {
-                    mPC = param2;
-                }
-                else
-                {
-                    mPC += 3;
-                }
-            }
-            else if (opcode == 7)
-            {
-                Int64 param1Index = mData[mPC + 1];
-                Int64 param2Index = mData[mPC + 2];
-                Int64 param3Index = mData[mPC + 3];
-                Int64 param1 = GetParam(param1Mode, param1Index);
-                Int64 param2 = GetParam(param2Mode, param2Index);
-                Int64 param3 = GetOutputIndex(param3Mode, param3Index);
-                Int64 output = 0;
-                if (param1 < param2)
-                {
-                    output = 1;
-                }
-                MakeDataBigEnough(param3);
-                mData[param3] = output;
-                mPC += 4;
-            }
-            else if (opcode == 8)
-            {
-                Int64 param1Index = mData[mPC + 1];
-                Int64 param2Index = mData[mPC + 2];
-                Int64 param3Index = mData[mPC + 3];
-                Int64 param1 = GetParam(param1Mode, param1Index);
-                Int64 param2 = GetParam(param2Mode, param2Index);
-                Int64 param3 = GetOutputIndex(param3Mode, param3Index);
-                Int64 output = 0;
-                if (param1 == param2)
-                {
-                    output = 1;
-                }
-                MakeDataBigEnough(param3);
-                mData[param3] = output;
-                mPC += 4;
-            }
-            else if (opcode == 9)
-            {
-                Int64 param1Index = mData[mPC + 1];
-                Int64 param1 = GetParam(param1Mode, param1Index);
-                mRelativeBase += param1;
-                mPC += 2;
-            }
-            else
-            {
-                throw new InvalidDataException($"Unknown opcode:{opcode}");
-            }
+
             instruction = mData[mPC];
         }
         halt = true;
         return result;
     }
 
-    Int64 GetParam(Int64 paramMode, Int64 paramIndex)
+    long GetParam(long paramMode, long paramIndex)
     {
         if (paramMode == 1)
         {
@@ -196,13 +197,13 @@ struct IntProgram
         }
         else
         {
-            throw new ArgumentOutOfRangeException("paramMode", $"Invalid paramMode {paramMode}");
+            throw new ArgumentOutOfRangeException(nameof(paramMode), $"Invalid paramMode {paramMode}");
         }
         MakeDataBigEnough(index);
         return mData[index];
     }
 
-    void MakeDataBigEnough(Int64 index)
+    void MakeDataBigEnough(long index)
     {
         if (index < 0)
         {
@@ -225,20 +226,14 @@ struct IntProgram
         }
     }
 
-    Int64 GetOutputIndex(Int64 paramMode, Int64 paramIndex)
+    private long GetOutputIndex(long paramMode, long paramIndex)
     {
-        if (paramMode == 0)
+        return paramMode switch
         {
-            return paramIndex;
-        }
-        else if (paramMode == 2)
-        {
-            return paramIndex + mRelativeBase;
-        }
-        else
-        {
-            throw new InvalidDataException($"Invalid input paramMode {paramMode}");
-        }
+            0 => paramIndex,
+            2 => paramIndex + mRelativeBase,
+            _ => throw new InvalidDataException($"Invalid input paramMode {paramMode}"),
+        };
     }
 
 }
