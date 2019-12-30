@@ -69,25 +69,23 @@ namespace Day14
 "7 XCVML => 6 RJRHP",
 "5 BHXH, 4 VRPVC => 5 LTCX",
         };
-        public static IEnumerable ParseInputCases
+
+        private static IEnumerable ParseInputCases => new[]
         {
-            get
-            {
-                yield return new TestCaseData(inputA, "A", "ORE").SetName("ParseInput.A A = 1 ORE").Returns(1.0);
-                yield return new TestCaseData(inputA, "B", "ORE").SetName("ParseInput.A B = 1 ORE").Returns(1.0);
-                yield return new TestCaseData(inputA, "C", "A").SetName("ParseInput.A C = 7 A").Returns(7.0);
-                yield return new TestCaseData(inputA, "C", "B").SetName("ParseInput.A C = 1 B").Returns(1.0);
-                yield return new TestCaseData(inputA, "D", "A").SetName("ParseInput.A D = 7 A").Returns(7.0);
-                yield return new TestCaseData(inputA, "D", "C").SetName("ParseInput.A D = 1 C").Returns(1.0);
-                yield return new TestCaseData(inputA, "E", "A").SetName("ParseInput.A E = 7 A").Returns(7.0);
-                yield return new TestCaseData(inputA, "E", "D").SetName("ParseInput.A E = 1 D").Returns(1.0);
-                yield return new TestCaseData(inputA, "FUEL", "A").SetName("ParseInput.A FUEL = 7 A").Returns(7.0);
-                yield return new TestCaseData(inputA, "FUEL", "E").SetName("ParseInput.A FUEL = 1 E").Returns(1.0);
-                yield return new TestCaseData(inputB, "FUEL", "AB").SetName("ParseInput.B FUEL = 2 AB").Returns(2.0);
-                yield return new TestCaseData(inputB, "FUEL", "BC").SetName("ParseInput.B FUEL = 3 BC").Returns(3.0);
-                yield return new TestCaseData(inputB, "FUEL", "CA").SetName("ParseInput.B FUEL = 4 CA").Returns(4.0);
-            }
-        }
+            new TestCaseData(inputA, "A", "ORE").SetName("ParseInput.A A = 1 ORE").Returns(1.0),
+            new TestCaseData(inputA, "B", "ORE").SetName("ParseInput.A B = 1 ORE").Returns(1.0),
+            new TestCaseData(inputA, "C", "A").SetName("ParseInput.A C = 7 A").Returns(7.0),
+            new TestCaseData(inputA, "C", "B").SetName("ParseInput.A C = 1 B").Returns(1.0),
+            new TestCaseData(inputA, "D", "A").SetName("ParseInput.A D = 7 A").Returns(7.0),
+            new TestCaseData(inputA, "D", "C").SetName("ParseInput.A D = 1 C").Returns(1.0),
+            new TestCaseData(inputA, "E", "A").SetName("ParseInput.A E = 7 A").Returns(7.0),
+            new TestCaseData(inputA, "E", "D").SetName("ParseInput.A E = 1 D").Returns(1.0),
+            new TestCaseData(inputA, "FUEL", "A").SetName("ParseInput.A FUEL = 7 A").Returns(7.0),
+            new TestCaseData(inputA, "FUEL", "E").SetName("ParseInput.A FUEL = 1 E").Returns(1.0),
+            new TestCaseData(inputB, "FUEL", "AB").SetName("ParseInput.B FUEL = 2 AB").Returns(2.0),
+            new TestCaseData(inputB, "FUEL", "BC").SetName("ParseInput.B FUEL = 3 BC").Returns(3.0),
+            new TestCaseData(inputB, "FUEL", "CA").SetName("ParseInput.B FUEL = 4 CA").Returns(4.0),
+        };
 
         [Test]
         [TestCaseSource("ParseInputCases")]
