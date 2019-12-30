@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 
 /*
@@ -126,10 +127,11 @@ namespace Day15
         static readonly int MAX_MAP_SIZE = 1024;
         static readonly int sStartX = MAX_MAP_SIZE / 2;
         static readonly int sStartY = MAX_MAP_SIZE / 2;
-        static readonly int[,] sMap = new int[MAX_MAP_SIZE, MAX_MAP_SIZE];
-        static readonly int[,] sMapExplored = new int[MAX_MAP_SIZE, MAX_MAP_SIZE];
+        static StatusCodes[,] sMap = new StatusCodes[MAX_MAP_SIZE, MAX_MAP_SIZE];
+        static readonly bool[,] sMapExplored = new bool[MAX_MAP_SIZE, MAX_MAP_SIZE];
         static int sDistance;
         static int sNumberOfSteps;
+        static int numberOfMinutes;
         static IntProgram sIntProgram = new IntProgram();
         enum Direction
         {
@@ -138,13 +140,21 @@ namespace Day15
             West = 3,
             East = 4
         };
+        enum StatusCodes
+        {
+            Unknown = 0,
+            EmptyRoom = 1,
+            Oxygen = 2,
+            Wall = 3
+        };
 
         private Program(string inputFile, bool part1)
         {
             sIntProgram.LoadProgram(inputFile);
+            var result = RunProgram();
+
             if (part1)
             {
-                var result = RunProgram();
                 Console.WriteLine($"Day15 : Result1 {result}");
                 if (result != 250)
                 {
@@ -153,8 +163,8 @@ namespace Day15
             }
             else
             {
-                var result = RunProgram();
-                Console.WriteLine($"Day15 : Result2 {result}");
+                var numberOfMinutesToFillWithOxygen = FillWithOxygen();
+                Console.WriteLine($"Day15 : Result2 {numberOfMinutesToFillWithOxygen}");
             }
         }
 
@@ -185,13 +195,13 @@ namespace Day15
             switch (output)
             {
                 case 1:
-                    sMap[newX, newY] = 1;
+                    sMap[newX, newY] = StatusCodes.EmptyRoom;
                     break;
                 case 2:
-                    sMap[newX, newY] = 2;
+                    sMap[newX, newY] = StatusCodes.Oxygen;
                     break;
                 case 0:
-                    sMap[newX, newY] = 3;
+                    sMap[newX, newY] = StatusCodes.Wall;
                     newX = currentX;
                     newY = currentY;
                     moved = false;
@@ -214,21 +224,20 @@ namespace Day15
             }
 
             ++sNumberOfSteps;
-            // Oxygen
-            if (sMap[newX, newY] == 2)
+            if (sMap[newX, newY] == StatusCodes.Oxygen)
             {
                 sDistance = sNumberOfSteps;
             }
 
             // Valid move and already visited
-            if (sMapExplored[newX, newY] == 1)
+            if (sMapExplored[newX, newY])
             {
                 MoveBack(direction, newX, newY);
                 --sNumberOfSteps;
                 return false;
             }
             // Valid moved and unknown map location
-            sMapExplored[newX, newY] = 1;
+            sMapExplored[newX, newY] = true;
 
             if (Search(Direction.North, newX, newY))
             {
@@ -315,7 +324,7 @@ namespace Day15
             {
                 for (int x = 0; x < MAX_MAP_SIZE; ++x)
                 {
-                    if (sMap[x, y] != 0)
+                    if (sMap[x, y] != StatusCodes.Unknown)
                     {
                         minX = Math.Min(minX, x);
                         minY = Math.Min(minY, y);
@@ -341,12 +350,12 @@ namespace Day15
                         line += 'S';
                     }
                     // Unknown
-                    else if (sMap[x, y] == 0)
+                    else if (sMap[x, y] == StatusCodes.Unknown)
                     {
                         line += ' ';
                     }
                     // Clear
-                    else if (sMap[x, y] == 1)
+                    else if (sMap[x, y] == StatusCodes.EmptyRoom)
                     {
                         if ((x == posX) && (y == posY))
                         {
@@ -358,7 +367,7 @@ namespace Day15
                         }
                     }
                     // Oxygen
-                    else if (sMap[x, y] == 2)
+                    else if (sMap[x, y] == StatusCodes.Oxygen)
                     {
                         if ((x == posX) && (y == posY))
                         {
@@ -366,11 +375,11 @@ namespace Day15
                         }
                         else
                         {
-                            line += 'E';
+                            line += 'O';
                         }
                     }
                     // Wall
-                    else if (sMap[x, y] == 3)
+                    else if (sMap[x, y] == StatusCodes.Wall)
                     {
                         line += '#';
                     }
@@ -383,6 +392,95 @@ namespace Day15
                 Console.WriteLine(line);
             }
             Console.WriteLine(topBottom);
+        }
+
+        public static void ParseInput(string[] mapInputRows)
+        {
+            sMap = new StatusCodes[MAX_MAP_SIZE, MAX_MAP_SIZE];
+            numberOfMinutes = 0;
+            if (mapInputRows.Length == 0)
+                throw new ArgumentException("There must be at least one map input row");
+
+            var mapWidth = mapInputRows[0].Length;
+            for (var y = 0; y < mapInputRows.Length; y++)
+            {
+                var row = mapInputRows[y];
+                if (row.Length != mapWidth)
+                {
+                    throw new ArgumentException("All map input rows must be the same width");
+                }
+                for (var x = 0; x < mapWidth; x++)
+                {
+                    var character = row[x];
+                    sMap[x, y] = character switch
+                    {
+                        ' ' => StatusCodes.Unknown,
+                        '.' => StatusCodes.EmptyRoom,
+                        'O' => StatusCodes.Oxygen,
+                        '#' => StatusCodes.Wall,
+                        _ => throw new InvalidDataException($"Invalid map input {character}")
+                    };
+                }
+            }
+        }
+
+        public static int FillWithOxygen()
+        {
+            var numberOfEmptyRooms = CountNumberOfEmptyRooms();
+            if (numberOfEmptyRooms == 0)
+            {
+                return numberOfMinutes;
+            }
+
+            numberOfMinutes++;
+
+            var newOxygenSpaces = new List<(int intX, int intY)>();
+
+            for (int y = 0; y < MAX_MAP_SIZE; ++y)
+            {
+                for (int x = 0; x < MAX_MAP_SIZE; ++x)
+                {
+                    if (sMap[x, y] == StatusCodes.Oxygen)
+                    {
+                        if (sMap[x, y + 1] == StatusCodes.EmptyRoom)
+                            newOxygenSpaces.Add((x, y + 1));
+
+                        if (sMap[x + 1, y] == StatusCodes.EmptyRoom)
+                            newOxygenSpaces.Add((x + 1, y));
+
+                        if (sMap[x, y - 1] == StatusCodes.EmptyRoom)
+                            newOxygenSpaces.Add((x, y - 1));
+
+                        if (sMap[x - 1, y] == StatusCodes.EmptyRoom)
+                            newOxygenSpaces.Add((x - 1, y));
+                    }
+                }
+            }
+            foreach (var (x, y) in newOxygenSpaces)
+            {
+                sMap[x, y] = StatusCodes.Oxygen;
+            }
+
+            OutputMap(0, 0);
+
+            return FillWithOxygen();
+        }
+
+        private static int CountNumberOfEmptyRooms()
+        {
+            var count = 0;
+            for (int y = 0; y < MAX_MAP_SIZE; ++y)
+            {
+                for (int x = 0; x < MAX_MAP_SIZE; ++x)
+                {
+                    if (sMap[x, y] == StatusCodes.EmptyRoom)
+                    {
+                        count++;
+                    }
+                }
+            }
+
+            return count;
         }
 
         public static void Run()
