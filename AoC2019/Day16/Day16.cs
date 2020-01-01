@@ -103,6 +103,11 @@ namespace Day16
             {
                 var result = RunFFT(start, 100);
                 Console.WriteLine($"Day16 part1:{result}");
+                var expected = "69549155";
+                if (result != expected)
+                {
+                    throw new InvalidDataException($"Part1 is broken {result} should be {expected}");
+                }
             }
             else
             {
