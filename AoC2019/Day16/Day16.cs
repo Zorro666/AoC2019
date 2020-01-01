@@ -94,15 +94,13 @@ namespace Day16
 {
     class Program
     {
-        static readonly int[] sPatternLookup = { 0, 1, 0, -1 };
-
         private Program(string inputFile, bool part1)
         {
             var start = ReadProgram(inputFile);
             if (part1)
             {
-                var result = RunFFT(start, 100);
-                Console.WriteLine($"Day16 part1:{result}");
+                var result = RunFFTPart1(start, 100);
+                Console.WriteLine($"Day16 inputLen:{start.Length} part1:{result}");
                 var expected = "69549155";
                 if (result != expected)
                 {
@@ -111,8 +109,8 @@ namespace Day16
             }
             else
             {
-                var result = RunFFT(start, 200);
-                Console.WriteLine($"Day16 part2:{result}");
+                var result = RunFFTPart2(start, 100);
+                Console.WriteLine($"Day16 inputLen:{start.Length} part2:{result}");
             }
         }
 
@@ -122,7 +120,7 @@ namespace Day16
             return elements;
         }
 
-        public static string RunFFT(string start, int numIterations)
+        public static string RunFFTPart1(string start, int numIterations)
         {
             var numDigits = start.Length;
             var startDigits = new int[numDigits];
@@ -131,46 +129,130 @@ namespace Day16
             for (int d = 0; d < numDigits; ++d)
             {
                 char charDigit = start[d];
-                startDigits[d] = (int)charDigit - '0';
+                startDigits[d] = charDigit - '0';
                 currentDigits[d] = startDigits[d];
                 nextDigits[d] = startDigits[d];
             }
 
             for (int i = 0; i < numIterations; ++i)
             {
-                for (int d = 0; d < numDigits; ++d)
+                for (long d = 0; d < numDigits; ++d)
                 {
                     currentDigits[d] = nextDigits[d];
                 }
-                for (int outputDigit = 0; outputDigit < numDigits; ++outputDigit)
+                for (long outputDigit = 0; outputDigit < numDigits; ++outputDigit)
                 {
                     long total = 0;
-                    int repeat = outputDigit + 1;
-                    for (int d = outputDigit; d < numDigits; ++d)
+                    long repeat = outputDigit + 1;
+                    long repeatCount = 0;
+                    long patternIndex = 1;
+                    for (long d = outputDigit; d < numDigits; ++d)
                     {
-                        /*
-                        The base pattern is 0, 1, 0, -1.Then, repeat each value in the pattern a number of times equal to the position in the output list being considered.Repeat once for the first element, twice for the second element, three times for the third element, and so on.So, if the third element of the output list is being calculated, repeating the values would produce: 0, 0, 0, 1, 1, 1, 0, 0, 0, -1, -1, -1.
-                        */
-                        // d =0 : 1, 0, -1, 0, 1, 0, -1
-                        // d =1 : 0, 1, 1, 0, 0, -1, -1, 0, 0, 1, 1, 0, 0, -1, -1
-                        // d =2 : 0, 0, 1, 1, 1, 0, 0, 0, -1, -1, -1, 0, 0, 0, 1, 1, 1, 0, 0, 0, -1, -1, -1
-                        int patternIndex = ((d + 1) / repeat) % 4;
-                        int pattern = sPatternLookup[patternIndex];
-                        total += currentDigits[d] * pattern;
-                        //Console.WriteLine($"out:{outputDigit} d:{d} pattern:{pattern} patternIndex:{patternIndex} total:{total}");
+                        if (patternIndex == 1)
+                        {
+                            total += currentDigits[d];
+                        }
+                        else if (patternIndex == 3)
+                        {
+                            total -= currentDigits[d];
+                        }
+                        ++repeatCount;
+                        if (repeatCount >= repeat)
+                        {
+                            repeatCount = 0;
+                            ++patternIndex;
+                            if (patternIndex >= 4)
+                            {
+                                patternIndex = 0;
+                            }
+                        }
                     }
-                    nextDigits[outputDigit] = (int)(Math.Abs(total) % 10);
+                    if (total >= 0)
+                    {
+                        nextDigits[outputDigit] = (int)(total % 10);
+                    }
+                    else
+                    {
+                        nextDigits[outputDigit] = (int)(-total % 10);
+                    }
                 }
             }
 
             var result = new char[8];
-            for (int d = 0; d < 8; ++d)
+            for (long d = 0; d < 8; ++d)
             {
                 result[d] = (char)(nextDigits[d] + '0');
 
             }
             return new string(result);
         }
+
+        public static string RunFFTPart2(string start, int numIterations)
+        {
+            //5975677
+            string start1000 = "";
+            for (int i = 0; i < 1000; ++i)
+            {
+                start1000 += start;
+            }
+            string message = "";
+            for (int i = 0; i < 10; ++i)
+            {
+                message += start1000;
+            }
+            long startIndex = long.Parse(message.Substring(0, 7));
+            long numDigits = message.Length;
+            Console.WriteLine($"Day16 inputLen:{numDigits} startPosition:{startIndex}");
+            if (startIndex < numDigits / 2)
+            {
+                throw new InvalidDataException($"Wrong input data");
+            }
+            // startIndex >= numDigits/2 : so pattern lookup is 1,1,1,1,1,1
+            // which is sumation : work backwards computing the sum (fibonacci style)
+
+            var startDigits = new int[numDigits];
+            var currentDigits = new int[numDigits];
+            var nextDigits = new int[numDigits];
+            for (int d = 0; d < numDigits; ++d)
+            {
+                char charDigit = message[d];
+                startDigits[d] = charDigit - '0';
+                currentDigits[d] = startDigits[d];
+                nextDigits[d] = startDigits[d];
+            }
+
+            for (int i = 0; i < numIterations; ++i)
+            {
+                for (long d = 0; d < numDigits; ++d)
+                {
+                    currentDigits[d] = nextDigits[d];
+                }
+                long total = 0;
+                // startIndex >= numDigits/2 : so pattern lookup is 1,1,1,1,1,1
+                // which is pure sumation : work backwards computing the sum (fibonacci style)
+                for (long d = numDigits - 1; d >= startIndex; --d)
+                {
+                    total += currentDigits[d];
+                    if (total >= 0)
+                    {
+                        nextDigits[d] = (int)(total % 10);
+                    }
+                    else
+                    {
+                        nextDigits[d] = (int)(-total % 10);
+                    }
+                }
+            }
+
+            var result = new char[8];
+            for (long d = startIndex; d < startIndex + 8; ++d)
+            {
+                result[d - startIndex] = (char)(nextDigits[d] + '0');
+
+            }
+            return new string(result);
+        }
+
 
         public static void Run()
         {

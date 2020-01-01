@@ -19,9 +19,17 @@ namespace Day16
         [TestCase("80871224585914546619083218645595", 100, ExpectedResult = "24176176")]
         [TestCase("19617804207202209144916044189917", 100, ExpectedResult = "73745418")]
         [TestCase("69317163492948606335995924319873", 100, ExpectedResult = "52432133")]
-        public string RunFFT(string start, int numIterations)
+        public string RunFFTPart1(string start, int numIterations)
         {
-            return Program.RunFFT(start, numIterations);
+            return Program.RunFFTPart1(start, numIterations);
+        }
+
+        [TestCase("03036732577212944063491565474664", 100, ExpectedResult = "84462026")]
+        [TestCase("02935109699940807407585447034323", 100, ExpectedResult = "78725270")]
+        [TestCase("03081770884921959731165446850517", 100, ExpectedResult = "53553731")]
+        public string RunFFTPart2(string start, int numIterations)
+        {
+            return Program.RunFFTPart2(start, numIterations);
         }
     }
 }
