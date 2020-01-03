@@ -4,8 +4,12 @@ using System.IO;
 struct IntProgram
 {
     long[] mData;
-    long mRelativeBase;
+    long[] mInputData;
     long mPC;
+    long mRelativeBase;
+    long mInputIndex;
+    long mNextInput;
+    bool mUseNextInput;
 
     public void LoadProgram(string inputFile)
     {
@@ -16,18 +20,45 @@ struct IntProgram
     public void CreateProgram(string source)
     {
         var sourceElements = source.Split(',');
-        mData = new long[sourceElements.Length];
+        mData = new long[sourceElements.Length + 10000];
         var index = 0;
         foreach (var element in sourceElements)
         {
             mData[index] = long.Parse(element);
             index++;
         }
+        for (; index < mData.Length; ++index)
+        {
+            mData[index] = 0;
+        }
         mPC = 0;
         mRelativeBase = 0;
+        mInputIndex = 0;
+        mNextInput = 0;
+        mUseNextInput = false;
     }
 
-    public long RunProgram(long input, ref bool halt, ref bool hasOutput)
+    public void SetNextInput(long inputData)
+    {
+        mUseNextInput = true;
+        mNextInput = inputData;
+    }
+
+    public void SetInputData(long[] inputData)
+    {
+        mInputData = inputData;
+        mInputIndex = 0;
+        mUseNextInput = false;
+    }
+
+    public void SetData(long index, long value)
+    {
+        Console.WriteLine($"mData[{index}] {mData[index]}");
+        mData[index] = value;
+        Console.WriteLine($"mData[{index}] {mData[index]}");
+    }
+
+    public long RunProgram(ref bool halt, ref bool hasOutput)
     {
         long instruction = mData[mPC];
         long result = -666;
@@ -92,7 +123,9 @@ struct IntProgram
                     param1Index = mData[mPC + 1];
                     long index = GetOutputIndex(param1Mode, param1Index);
                     MakeDataBigEnough(index);
+                    long input = mUseNextInput ? mNextInput : mInputData[mInputIndex++];
                     mData[index] = input;
+                    Console.WriteLine($"Input: {index} {input}");
                     mPC += 2;
                     break;
                 case 4:
@@ -186,7 +219,7 @@ struct IntProgram
         {
             return paramIndex;
         }
-        Int64 index;
+        long index;
         if (paramMode == 0)
         {
             index = paramIndex;
@@ -211,14 +244,14 @@ struct IntProgram
         }
         if (index >= mData.Length)
         {
-            Int64[] newData = new Int64[index + 1];
+            long[] newData = new long[index + 1];
             int i = 0;
             foreach (var d in mData)
             {
                 newData[i] = d;
                 ++i;
             }
-            for (; i < index; ++i)
+            for (; i <= index; ++i)
             {
                 newData[i] = 0;
             }

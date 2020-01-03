@@ -298,7 +298,8 @@ namespace Day15
         {
             bool halt = false;
             bool hasOutput = false;
-            var output = sIntProgram.RunProgram(input, ref halt, ref hasOutput);
+            sIntProgram.SetNextInput(input);
+            var output = sIntProgram.RunProgram(ref halt, ref hasOutput);
             if (halt && hasOutput)
             {
                 throw new InvalidDataException($"halt and hasOutput can't be both true");

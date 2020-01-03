@@ -129,37 +129,54 @@ namespace Day17
 {
     class Program
     {
-        static readonly int MAX_MAP_SIZE = 1024;
-        static StatusCodes[,] sMap = new StatusCodes[MAX_MAP_SIZE, MAX_MAP_SIZE];
-        static List<(int X, int Y)> sIntersections = new List<(int X, int Y)>();
         static IntProgram sIntProgram = new IntProgram();
+        static readonly int MAX_MAP_SIZE = 1024;
+        static readonly int MOVE_LEFT = -1;
+        static readonly int MOVE_RIGHT = -2;
+        static readonly int SUB_A = -3;
+        static readonly int SUB_B = -4;
+        static readonly int SUB_C = -5;
+        static readonly long[,] sMap = new long[MAX_MAP_SIZE, MAX_MAP_SIZE];
+        static readonly List<(int X, int Y)> sIntersections = new List<(int X, int Y)>();
+        static readonly List<int> sMoves = new List<int>();
+        static List<int> sFinalMoves = null;
+        static List<int> sPatternA = null;
+        static List<int> sPatternB = null;
+        static List<int> sPatternC = null;
+        static bool sFoundSolution = false;
 
-        enum StatusCodes
+        static readonly long Unknown = 0;
+        static readonly long Scaffold = '#';
+        static readonly long Empty = '.';
+        static readonly long RobotUp = '^';
+        static readonly long RobotDown = 'v';
+        static readonly long RobotLeft = '<';
+        static readonly long RobotRight = '>';
+        static readonly long RobotTumble = 'X';
+
+        enum Direction
         {
-            Unknown = 0,
-            Scaffold = 1,
-            Empty = 2,
-            RobotUp = 3,
-            RobotDown = 4,
-            RobotLeft = 5,
-            RobotRight = 6,
-            RobotTumble = 7
+            North = 0,
+            South = 1,
+            West = 2,
+            East = 3
         };
 
         private Program(string inputFile, bool part1)
         {
             sIntProgram.LoadProgram(inputFile);
+            sIntProgram.SetData(0, 1);
             RunProgram();
-
             if (part1)
             {
                 FindIntersections();
+
                 var result = 0;
                 foreach (var intersection in sIntersections)
                 {
                     result += intersection.X * intersection.Y;
                 }
-                Console.WriteLine($"Day15 : Result1 {result}");
+                Console.WriteLine($"Day17 : Result1 {result}");
                 if (result != 4864)
                 {
                     throw new InvalidProgramException($"Part1 result has been broken {result}");
@@ -167,9 +184,292 @@ namespace Day17
             }
             else
             {
-                var result = 200;
-                Console.WriteLine($"Day15 : Result2 {result}");
+                WalkRobot();
+                OutputMoves(sMoves);
+                sFoundSolution = false;
+                FindPattern(sMoves, SUB_A);
+
+                sIntProgram.LoadProgram(inputFile);
+                sIntProgram.SetData(0, 2);
+                var result = RunProgramWithInput();
+                Console.WriteLine($"Day17 : Result2 {result}");
+                if (result != 840248)
+                {
+                    throw new InvalidProgramException($"Part2 result has been broken {result}");
+                }
             }
+        }
+
+        static void FindPattern(List<int> inMoves, int patternName)
+        {
+            if (patternName == SUB_A)
+            {
+                sFoundSolution = false;
+            }
+            var movesCount = inMoves.Count;
+            for (int patternStartPos = 0; patternStartPos < movesCount; patternStartPos++)
+            {
+                int maxPatternLength = Math.Min(10, movesCount - patternStartPos);
+                for (int patternLength = 2; patternLength < maxPatternLength; patternLength++)
+                {
+                    List<int> pattern = new List<int>();
+                    for (int i = 0; i < patternLength; ++i)
+                    {
+                        var move = inMoves[patternStartPos + i];
+                        if (move > SUB_A)
+                        {
+                            pattern.Add(move);
+                        }
+                    }
+                    var patternCharCount = GetPatternCharCount(pattern);
+                    if ((patternCharCount > 0) && (patternCharCount <= 20))
+                    {
+                        if (patternName == SUB_A)
+                        {
+                            sPatternA = pattern;
+                        }
+                        else if (patternName == SUB_B)
+                        {
+                            sPatternB = pattern;
+                        }
+                        else if (patternName == SUB_C)
+                        {
+                            sPatternC = pattern;
+                        }
+                        var newMoves = SubstitutePattern(inMoves, pattern, patternName);
+                        var movesString = MovesToString(newMoves);
+                        //Console.WriteLine($"Moves:{movesString} Len:{movesString.Length}");
+                        if (movesString.Length <= 20)
+                        {
+                            sFoundSolution = true;
+                            sFinalMoves = newMoves;
+                            Console.WriteLine($"Found solution");
+                            OutputMoves(sFinalMoves);
+                            OutputPattern(SUB_A, sPatternA);
+                            OutputPattern(SUB_B, sPatternB);
+                            OutputPattern(SUB_C, sPatternC);
+                            return;
+                        }
+                        if (patternName == SUB_A)
+                        {
+                            //Console.WriteLine($"Pattern A");
+                            //OutputPattern(pattern);
+                            FindPattern(newMoves, SUB_B);
+                        }
+                        else if (patternName == SUB_B)
+                        {
+                            //Console.WriteLine($"Pattern B");
+                            //OutputPattern(pattern);
+                            FindPattern(newMoves, SUB_C);
+                        }
+                        else if (patternName == SUB_C)
+                        {
+                            //Console.WriteLine($"Pattern C");
+                            //OutputPattern(pattern);
+                        }
+                    }
+                    if (sFoundSolution)
+                    {
+                        return;
+                    }
+                }
+                if (sFoundSolution)
+                {
+                    return;
+                }
+            }
+        }
+
+        static int GetPatternCharCount(List<int> pattern)
+        {
+            var moves = MovesToString(pattern);
+            return moves.Length;
+        }
+
+        static List<int> SubstitutePattern(List<int> inMoves, List<int> pattern, int patternName)
+        {
+            List<int> moves = new List<int>();
+            int patternLen = pattern.Count;
+            for (int m = 0; m < inMoves.Count;)
+            {
+                bool match = true;
+                for (int p = 0; p < patternLen; ++p)
+                {
+                    if (m + p >= inMoves.Count)
+                    {
+                        match = false;
+                        break;
+                    }
+                    if (inMoves[m + p] != pattern[p])
+                    {
+                        match = false;
+                        break;
+                    }
+                }
+                if (match)
+                {
+                    moves.Add(patternName);
+                    m += patternLen;
+                }
+                else
+                {
+                    moves.Add(inMoves[m]);
+                    m++;
+                }
+            }
+            return moves;
+        }
+
+        static string MovesToString(List<int> intMoves)
+        {
+            string moves = "";
+            foreach (var move in intMoves)
+            {
+                string thisMove = "";
+                if (move == MOVE_LEFT)
+                {
+                    thisMove = "L";
+                }
+                else if (move == MOVE_RIGHT)
+                {
+                    thisMove = "R";
+                }
+                else if (move == SUB_A)
+                {
+                    thisMove = "A";
+                }
+                else if (move == SUB_B)
+                {
+                    thisMove = "B";
+                }
+                else if (move == SUB_C)
+                {
+                    thisMove = "C";
+                }
+                else
+                {
+                    thisMove = move.ToString();
+                }
+                if (moves.Length > 0)
+                {
+                    moves += ",";
+                }
+                moves += thisMove;
+            }
+            return moves;
+        }
+
+        static void OutputMoves(List<int> intMoves)
+        {
+            var moves = MovesToString(intMoves);
+            Console.WriteLine($"Moves:{moves} Len:{moves.Length}");
+        }
+
+        static void OutputPattern(int patternName, List<int> intMoves)
+        {
+            var moves = MovesToString(intMoves);
+            var patternString = "";
+            if (patternName == SUB_A)
+            {
+                patternString = "A";
+            }
+            else if (patternName == SUB_B)
+            {
+                patternString = "B";
+            }
+            else if (patternName == SUB_C)
+            {
+                patternString = "C";
+            }
+            Console.WriteLine($"Pattern {patternString}:{moves} Len:{moves.Length}");
+        }
+
+        static void ConvertMovePatternToInput(ref List<long> inputList, List<int> moves)
+        {
+            for (int i = 0; i < moves.Count; i++)
+            {
+                if (i > 0)
+                {
+                    inputList.Add(',');
+                }
+                int m = moves[i];
+                if (m == MOVE_LEFT)
+                {
+                    inputList.Add('L');
+                }
+                else if (m == MOVE_RIGHT)
+                {
+                    inputList.Add('R');
+                }
+                else if (m == SUB_A)
+                {
+                    inputList.Add('A');
+                }
+                else if (m == SUB_B)
+                {
+                    inputList.Add('B');
+                }
+                else if (m == SUB_C)
+                {
+                    inputList.Add('C');
+                }
+                else if ((m >= 1) && (m <= 9))
+                {
+                    inputList.Add(m + '0');
+                }
+                else if ((m >= 10) && (m <= 19))
+                {
+                    inputList.Add((m / 10) + '0');
+                    inputList.Add(m % 10 + '0');
+                }
+            }
+            inputList.Add(10);
+        }
+
+        static public long RunProgramWithInput()
+        {
+            List<long> inputList = new List<long>();
+            ConvertMovePatternToInput(ref inputList, sFinalMoves);
+            ConvertMovePatternToInput(ref inputList, sPatternA);
+            ConvertMovePatternToInput(ref inputList, sPatternB);
+            ConvertMovePatternToInput(ref inputList, sPatternC);
+            inputList.Add('n');
+            inputList.Add(10);
+            string line = "";
+            foreach (var i in inputList)
+            {
+                line += i;
+                if (i == 10)
+                {
+                    Console.WriteLine($"{line}");
+                    line = "";
+                }
+                else
+                {
+                    line += " ";
+                }
+            }
+            if (line.Length > 0)
+            {
+                Console.WriteLine($"{line}");
+            }
+            sIntProgram.SetInputData(inputList.ToArray());
+            RunProgram();
+            bool halt = false;
+            long result = 0;
+            while (!halt)
+            {
+                var output = GetOutput();
+                if (output == -666)
+                {
+                    halt = true;
+                }
+                else
+                {
+                    result = output;
+                }
+            }
+            return result;
         }
 
         static public void RunProgram()
@@ -180,70 +480,57 @@ namespace Day17
             while (!halt)
             {
                 var output = GetOutput();
-                switch (output)
+                halt = ParseOutput(output, ref x, ref y);
+                if (output == '?')
                 {
-                    /*
-                    Running the ASCII program on your Intcode computer will provide the current view of the scaffolds.This is output, purely coincidentally, as ASCII code: 35 means #, 46 means ., 10 starts a new line of output below the current one, and so on. (Within a line, characters are drawn left-to-right.)
-                    In the camera output, # represents a scaffold and . represents open space. The vacuum robot is visible as ^, v, <, or > depending on whether it is facing up, down, left, or right respectively. When drawn like this, the vacuum robot is always on a scaffold; if the vacuum robot ever walks off of a scaffold and begins tumbling through space uncontrollably, it will instead be visible as X.
-                    */
-                    case '#':
-                        sMap[x++, y] = StatusCodes.Scaffold;
-                        break;
-                    case '.':
-                        sMap[x++, y] = StatusCodes.Empty;
-                        break;
-                    case '^':
-                        sMap[x++, y] = StatusCodes.RobotUp;
-                        break;
-                    case 'v':
-                        sMap[x++, y] = StatusCodes.RobotDown;
-                        break;
-                    case '<':
-                        sMap[x++, y] = StatusCodes.RobotLeft;
-                        break;
-                    case '>':
-                        sMap[x++, y] = StatusCodes.RobotRight;
-                        break;
-                    case 'X':
-                        sMap[x++, y] = StatusCodes.RobotTumble;
-                        break;
-                    case 10:
-                        y++;
-                        x = 0;
-                        break;
-                    case -666:
-                        halt = true;
-                        break;
-                    default:
-                        throw new InvalidDataException($"Unknown output {output}");
+                    halt = true;
                 }
             }
             OutputMap();
         }
 
+        static bool ParseOutput(long output, ref int x, ref int y)
+        {
+            if (output == -666)
+            {
+                return true;
+            }
+            if (output == 10)
+            {
+                y++;
+                x = 0;
+            }
+            else
+            {
+                sMap[x++, y] = output;
+            }
+            return false;
+        }
+
         static void FindIntersections()
         {
+            sIntersections.Clear();
             for (int y = 0; y < MAX_MAP_SIZE; ++y)
             {
                 for (int x = 0; x < MAX_MAP_SIZE; ++x)
                 {
                     // Neighbours
                     int numNeighbourCount = 0;
-                    if (sMap[x, y] == StatusCodes.Scaffold)
+                    if (sMap[x, y] == Scaffold)
                     {
-                        if (x > 0 && sMap[x - 1, y] == StatusCodes.Scaffold)
+                        if (x > 0 && sMap[x - 1, y] == Scaffold)
                         {
                             ++numNeighbourCount;
                         }
-                        if (x + 1 < MAX_MAP_SIZE && sMap[x + 1, y] == StatusCodes.Scaffold)
+                        if (x + 1 < MAX_MAP_SIZE && sMap[x + 1, y] == Scaffold)
                         {
                             ++numNeighbourCount;
                         }
-                        if (y > 0 && sMap[x, y - 1] == StatusCodes.Scaffold)
+                        if (y > 0 && sMap[x, y - 1] == Scaffold)
                         {
                             ++numNeighbourCount;
                         }
-                        if (y + 1 < MAX_MAP_SIZE && sMap[x, y + 1] == StatusCodes.Scaffold)
+                        if (y + 1 < MAX_MAP_SIZE && sMap[x, y + 1] == Scaffold)
                         {
                             ++numNeighbourCount;
                         }
@@ -258,11 +545,160 @@ namespace Day17
             }
         }
 
+        static (int X, int Y, Direction Facing) FindRobot()
+        {
+            for (int y = 0; y < MAX_MAP_SIZE; ++y)
+            {
+                for (int x = 0; x < MAX_MAP_SIZE; ++x)
+                {
+                    if (sMap[x, y] == RobotUp)
+                        return (x, y, Direction.North);
+                    else if (sMap[x, y] == RobotDown)
+                        return (x, y, Direction.South);
+                    else if (sMap[x, y] == RobotLeft)
+                        return (x, y, Direction.West);
+                    else if (sMap[x, y] == RobotRight)
+                        return (x, y, Direction.East);
+                    else if (sMap[x, y] == RobotTumble)
+                        throw new InvalidDataException($"Robot has fallen off {x},{y}");
+                }
+            }
+            throw new InvalidDataException($"Robot was not found");
+        }
+
+        static (int X, int Y) GetNextPosition(int x, int y, Direction facing)
+        {
+            switch (facing)
+            {
+                case Direction.North:
+                    return (x, y - 1);
+                case Direction.South:
+                    return (x, y + 1);
+                case Direction.West:
+                    return (x - 1, y);
+                case Direction.East:
+                    return (x + 1, y);
+            }
+            throw new InvalidDataException($"Invalid direction {facing}");
+        }
+
+        static bool IsScaffold(int x, int y)
+        {
+            if (x < 0)
+            {
+                return false;
+            }
+            if (y < 0)
+            {
+                return false;
+            }
+            if (x >= MAX_MAP_SIZE)
+            {
+                return false;
+            }
+            if (y >= MAX_MAP_SIZE)
+            {
+                return false;
+            }
+            return sMap[x, y] == Scaffold;
+        }
+
+        static void WalkRobot()
+        {
+            (int robotX, int robotY, Direction robotFacing) = FindRobot();
+            bool finished = false;
+            int newX;
+            int newY;
+            int moved = 0;
+            bool triedLeft = false;
+            bool triedRight = false;
+            Direction lastFacing = robotFacing;
+            sMoves.Clear();
+            while (!finished)
+            {
+                (newX, newY) = GetNextPosition(robotX, robotY, robotFacing);
+                bool validMove = IsScaffold(newX, newY);
+                if (validMove)
+                {
+                    lastFacing = robotFacing;
+                    if (moved == 0)
+                    {
+                        //Output Turn
+                        if (triedLeft && !triedRight)
+                        {
+                            sMoves.Add(MOVE_LEFT);
+                        }
+                        else if (triedLeft && triedRight)
+                        {
+                            sMoves.Add(MOVE_RIGHT);
+                        }
+                    }
+                    robotX = newX;
+                    robotY = newY;
+                    moved++;
+                    triedLeft = false;
+                    triedRight = false;
+                }
+                else
+                {
+                    // Output Movement
+                    if (moved > 0)
+                    {
+                        sMoves.Add(moved);
+                        moved = 0;
+                    }
+                    if (!triedLeft)
+                    {
+                        triedLeft = true;
+                        triedRight = false;
+                        switch (lastFacing)
+                        {
+                            case Direction.North:
+                                robotFacing = Direction.West;
+                                break;
+                            case Direction.South:
+                                robotFacing = Direction.East;
+                                break;
+                            case Direction.West:
+                                robotFacing = Direction.South;
+                                break;
+                            case Direction.East:
+                                robotFacing = Direction.North;
+                                break;
+                        }
+                    }
+                    else if (!triedRight)
+                    {
+                        triedRight = true;
+                        switch (lastFacing)
+                        {
+                            case Direction.North:
+                                robotFacing = Direction.East;
+                                break;
+                            case Direction.South:
+                                robotFacing = Direction.West;
+                                break;
+                            case Direction.West:
+                                robotFacing = Direction.North;
+                                break;
+                            case Direction.East:
+                                robotFacing = Direction.South;
+                                break;
+                        }
+                    }
+                    else
+                    {
+                        finished = true;
+                    }
+                }
+            };
+        }
+
         static long GetOutput()
         {
             bool halt = false;
             bool hasOutput = false;
-            var output = sIntProgram.RunProgram(0, ref halt, ref hasOutput);
+            var output = sIntProgram.RunProgram(ref halt, ref hasOutput);
             if (halt && hasOutput)
             {
                 throw new InvalidDataException($"halt and hasOutput can't be both true");
@@ -288,7 +724,7 @@ namespace Day17
             {
                 for (int x = 0; x < MAX_MAP_SIZE; ++x)
                 {
-                    if (sMap[x, y] != StatusCodes.Unknown)
+                    if (sMap[x, y] != Unknown)
                     {
                         minX = Math.Min(minX, x);
                         minY = Math.Min(minY, y);
@@ -309,35 +745,7 @@ namespace Day17
                 string line = "|";
                 for (int x = minX; x <= maxX; ++x)
                 {
-                    switch (sMap[x, y])
-                    {
-                        case StatusCodes.Unknown:
-                            line += ' ';
-                            break;
-                        case StatusCodes.Scaffold:
-                            line += '#';
-                            break;
-                        case StatusCodes.Empty:
-                            line += '.';
-                            break;
-                        case StatusCodes.RobotUp:
-                            line += '^';
-                            break;
-                        case StatusCodes.RobotDown:
-                            line += 'v';
-                            break;
-                        case StatusCodes.RobotLeft:
-                            line += '<';
-                            break;
-                        case StatusCodes.RobotRight:
-                            line += '>';
-                            break;
-                        case StatusCodes.RobotTumble:
-                            line += 'X';
-                            break;
-                        default:
-                            throw new InvalidDataException($"Invalid map value {sMap[x, y]}");
-                    }
+                    line += (char)sMap[x, y];
                 }
                 line += "|";
                 Console.WriteLine(line);
