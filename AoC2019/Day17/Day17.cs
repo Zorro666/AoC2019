@@ -147,7 +147,6 @@ namespace Day17
 
         static readonly long Unknown = 0;
         static readonly long Scaffold = '#';
-        static readonly long Empty = '.';
         static readonly long RobotUp = '^';
         static readonly long RobotDown = 'v';
         static readonly long RobotLeft = '<';
