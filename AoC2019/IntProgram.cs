@@ -3,6 +3,7 @@ using System.IO;
 
 struct IntProgram
 {
+    long[] mInitialState;
     long[] mData;
     long[] mInputData;
     long mPC;
@@ -20,22 +21,32 @@ struct IntProgram
     public void CreateProgram(string source)
     {
         var sourceElements = source.Split(',');
+        mInitialState = new long[sourceElements.Length + 10000];
         mData = new long[sourceElements.Length + 10000];
         var index = 0;
         foreach (var element in sourceElements)
         {
-            mData[index] = long.Parse(element);
+            mInitialState[index] = long.Parse(element);
             index++;
         }
         for (; index < mData.Length; ++index)
         {
-            mData[index] = 0;
+            mInitialState[index] = 0;
         }
+        Reset();
+    }
+
+    public void Reset()
+    {
         mPC = 0;
         mRelativeBase = 0;
         mInputIndex = 0;
         mNextInput = 0;
         mUseNextInput = false;
+        for (int index = 0; index < mData.Length; ++index)
+        {
+            mData[index] = mInitialState[index];
+        }
     }
 
     public void SetNextInput(long inputData)
@@ -53,9 +64,9 @@ struct IntProgram
 
     public void SetData(long index, long value)
     {
-        Console.WriteLine($"mData[{index}] {mData[index]}");
+        //Console.WriteLine($"mData[{index}] {mData[index]}");
         mData[index] = value;
-        Console.WriteLine($"mData[{index}] {mData[index]}");
+        //Console.WriteLine($"mData[{index}] {mData[index]}");
     }
 
     public long RunProgram(ref bool halt, ref bool hasOutput)
@@ -125,7 +136,7 @@ struct IntProgram
                     MakeDataBigEnough(index);
                     long input = mUseNextInput ? mNextInput : mInputData[mInputIndex++];
                     mData[index] = input;
-                    Console.WriteLine($"Input: {index} {input}");
+                    //Console.WriteLine($"Input: {index} {input}");
                     mPC += 2;
                     break;
                 case 4:
