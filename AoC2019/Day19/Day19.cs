@@ -84,34 +84,54 @@ namespace Day19
     class Program
     {
         static IntProgram sProgram = new IntProgram();
-        static char[,] sMap = new char[50, 50];
+        static int sMapSize;
+        static int[] sLeftEdge;
+        static int[] sRightEdge;
+        static char[,] sMap;
 
         private Program(string inputFile, bool part1)
         {
             sProgram.LoadProgram(inputFile);
-            GenerateMap();
-            OutputMap();
 
             if (part1)
             {
-                var countAffected = CountAffected();
-                Console.WriteLine($"countAffected:{countAffected}");
-                if (116 != countAffected)
+                sMapSize = 50;
+                GenerateMap();
+                //OutputMap();
+                var result = CountAffected();
+                Console.WriteLine($"Day19 : Result1 {result}");
+                if (116 != result)
                 {
-                    throw new InvalidDataException($"Part1 result has been broken {countAffected} != 116");
+                    throw new InvalidDataException($"Part1 result has been broken {result} != 116");
                 }
             }
             else
             {
+                sMapSize = 10000;
+                var bottomEdge = FindSantaSquare();
+                var topEdge = bottomEdge - 99;
+                var leftTopEdge = sLeftEdge[topEdge];
+                var rightTopEdge = sRightEdge[topEdge];
+                var leftBottomEdge = sLeftEdge[bottomEdge];
+                var rightBottomEdge = sRightEdge[bottomEdge];
+                Console.WriteLine($"Top[{topEdge}] {leftTopEdge} -> {rightTopEdge} Bottom[{bottomEdge}] {leftBottomEdge} -> {rightBottomEdge}");
+                var x = rightTopEdge - 100;
+                var y = topEdge;
+                var result = x * 10000 + y;
+                Console.WriteLine($"Day19 : Result2 {result}");
+                if (10311666 != result)
+                {
+                    throw new InvalidDataException($"Part2 result has been broken {result} != 10311666");
+                }
             }
         }
 
         static long CountAffected()
         {
             long count = 0;
-            for (int y = 0; y < 50; ++y)
+            for (int y = 0; y < sMapSize; ++y)
             {
-                for (int x = 0; x < 50; ++x)
+                for (int x = 0; x < sMapSize; ++x)
                 {
                     count += sMap[x, y] == '.' ? 0 : 1;
                 }
@@ -119,16 +139,115 @@ namespace Day19
             return count;
         }
 
+        static int FindSantaSquare()
+        {
+            bool halt = false;
+            bool hasOutput = false;
+            InitMap();
+            var inputs = new long[2];
+            int xLeft = 0;
+            int xRight = -1;
+            for (int y = 0; y < sMapSize; ++y)
+            {
+                bool beamStarted = false;
+                int beamStartX = -1;
+                int beamEndX = -1;
+                for (int x = xLeft; x < sMapSize; ++x)
+                {
+                    long result;
+                    inputs[0] = x;
+                    inputs[1] = y;
+                    sProgram.Reset();
+                    sProgram.SetInputData(inputs);
+                    result = sProgram.RunProgram(ref halt, ref hasOutput);
+                    if (result == 1)
+                    {
+                        if (!beamStarted)
+                        {
+                            sLeftEdge[y] = x;
+                            beamStartX = x;
+                            xLeft = x - 2;
+                            if (xLeft < 0)
+                            {
+                                xLeft = 0;
+                            }
+                            x = xRight;
+                            if (x < beamStartX)
+                            {
+                                x = beamStartX;
+                            }
+                        }
+                        beamStarted = true;
+                    }
+                    else if (beamStarted && (result == 0))
+                    {
+                        sRightEdge[y] = x;
+                        beamEndX = x;
+                        for (int i = beamStartX; i < beamEndX; ++i)
+                        {
+                            sMap[i, y] = '#';
+                        }
+                        xRight = x - 1;
+                        if (xRight < 0)
+                        {
+                            xRight = 0;
+                        }
+                        break;
+                    }
+                }
+                if ((beamEndX - beamStartX) >= 100)
+                {
+                    if (y >= 100)
+                    {
+                        Console.WriteLine($"[{y}] {beamStartX} -> {beamEndX}");
+                        int rightTopEdge = sRightEdge[y - 99];
+                        int leftBottomEdge = sLeftEdge[y];
+                        if ((leftBottomEdge + 99) < rightTopEdge)
+                        {
+                            return y;
+                        }
+                    }
+                }
+            }
+            return -1;
+        }
+
+        static void InitMap()
+        {
+            sMap = new char[sMapSize, sMapSize];
+            sLeftEdge = new int[sMapSize];
+            sRightEdge = new int[sMapSize];
+            for (int y = 0; y < sMapSize; ++y)
+            {
+                for (int x = 0; x < sMapSize; ++x)
+                {
+                    sMap[x, y] = '.';
+                }
+            }
+        }
+
         static void GenerateMap()
         {
             bool halt = false;
             bool hasOutput = false;
+            InitMap();
 
             var inputs = new long[2];
-
-            for (int y = 0; y < 50; ++y)
+            for (int y = 0; y < sMapSize; ++y)
             {
-                for (int x = 0; x < 50; ++x)
+                for (int x = 0; x < sMapSize; ++x)
+                {
+                    sMap[x, y] = '.';
+                }
+            }
+
+            int xLeft = 0;
+            int xRight = -1;
+            int beamStartX = -1;
+            for (int y = 0; y < sMapSize; ++y)
+            {
+                bool beamStarted = false;
+                for (int x = xLeft; x < sMapSize; ++x)
                 {
                     long result;
                     inputs[0] = x;
@@ -138,6 +257,37 @@ namespace Day19
                     result = sProgram.RunProgram(ref halt, ref hasOutput);
                     char output = result == 1 ? '#' : '.';
                     sMap[x, y] = output;
+                    if (result == 1)
+                    {
+                        if (!beamStarted)
+                        {
+                            beamStartX = x;
+                            xLeft = x - 2;
+                            if (xLeft < 0)
+                            {
+                                xLeft = 0;
+                            }
+                            x = xRight;
+                            if (x < beamStartX)
+                            {
+                                x = beamStartX;
+                            }
+                        }
+                        beamStarted = true;
+                    }
+                    else if (beamStarted && (result == 0))
+                    {
+                        xRight = x - 1;
+                        if (xRight < 0)
+                        {
+                            xRight = 0;
+                        }
+                        for (int i = beamStartX; i < x; ++i)
+                        {
+                            sMap[i, y] = '#';
+                        }
+                        break;
+                    }
                 }
             }
         }
@@ -145,10 +295,10 @@ namespace Day19
         static void OutputMap()
         {
 
-            for (int y = 0; y < 50; ++y)
+            for (int y = 0; y < sMapSize; ++y)
             {
                 string line = "";
-                for (int x = 0; x < 50; ++x)
+                for (int x = 0; x < sMapSize; ++x)
                 {
                     line += sMap[x, y];
                 }
