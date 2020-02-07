@@ -106,8 +106,14 @@ namespace Day20
             var mapSource = ReadProgram(inputFile);
             if (part1)
             {
-                ParseMap(mapSource, false);
+                ParseMap(mapSource);
                 OutputMap(false);
+                var result = ShortestPath();
+                Console.WriteLine($"Day20 : Result1 {result}");
+                if (result != 1023678)
+                {
+                    throw new InvalidDataException($"Part1 has been broken {result} ! 1023678");
+                }
             }
         }
 
@@ -117,7 +123,7 @@ namespace Day20
             return mapSource;
         }
 
-        public static void ParseMap(string[] mapSource, bool applyPart2Setup)
+        public static void ParseMap(string[] mapSource)
         {
             if (mapSource.Length == 0)
             {
@@ -206,7 +212,7 @@ namespace Day20
                     throw new InvalidDataException($"Invalid portal at {(char)(pId - PORTAL_START + 'A')} {pX},{pY} wrong number of portalLetters {countValidPortalId}");
                 }
 
-                // Find the entry/exit point for this portal instance
+                // Find the entry/exit pont for this portal instance
                 var startPoints = new (int x, int y)[] { (pX, pY), (validPortal.x, validPortal.y) };
                 int countValidEntryExitPoints = 0;
                 (int x, int y) entryExit = (-1, -1);
@@ -228,28 +234,93 @@ namespace Day20
                 {
                     throw new InvalidDataException($"Invalid portal at {(char)(pId - PORTAL_START + 'A')} {pX},{pY} wrong number of entry exit points {countValidEntryExitPoints}");
                 }
-                portals.Add((pId, validPortal.id, entryExit.x, entryExit.y));
+                bool exists = false;
+                foreach (var p in portals)
+                {
+                    if ((p.id0 == validPortal.id) && (p.id1 == pId) && (p.entryExitX == entryExit.x) && (p.entryExitY == entryExit.y))
+                    {
+                        exists = true;
+                        break;
+                    }
+                }
+                if (!exists)
+                {
+                    portals.Add((pId, validPortal.id, entryExit.x, entryExit.y));
+                }
             }
             // Find the start and end portal instances
             foreach (var portal in portals)
             {
                 if (portal.id0 == portal.id1)
                 {
+                    var nodeIndex = GetNodeIndex(portal.entryExitX, portal.entryExitY);
                     if (portal.id0 == PORTAL_START + 'A' - 'A')
                     {
-                        sStartNode = GetNodeIndex(portal.entryExitX, portal.entryExitY);
+                        if (sStartNode == -1)
+                        {
+                            sStartNode = nodeIndex;
+                        }
+                        else
+                        {
+                            throw new InvalidDataException($"Found more than one start points this:{nodeIndex} existing:{sStartNode}");
+                        }
                     }
                     else if (portal.id0 == PORTAL_START + 'Z' - 'A')
                     {
-                        sExitNode = GetNodeIndex(portal.entryExitX, portal.entryExitY);
-                    }
-                    else
-                    {
-                        throw new InvalidDataException($"Invalid portal type {(char)(portal.id0 - PORTAL_START + 'A')}, {(char)(portal.id1 - PORTAL_START + 'A')} at {portal.entryExitX},{portal.entryExitY}");
+                        if (sExitNode == -1)
+                        {
+                            sExitNode = GetNodeIndex(portal.entryExitX, portal.entryExitY);
+                        }
+                        else
+                        {
+                            throw new InvalidDataException($"Found more than one exit points this:{nodeIndex} existing:{sExitNode}");
+                        }
                     }
                 }
             }
             // Find the connected portal to make : PortalId: enterIndex exitIndex
+            foreach (var portal in portals)
+            {
+                var nodeIndex = GetNodeIndex(portal.entryExitX, portal.entryExitY);
+                int id0 = portal.id0;
+                int id1 = portal.id1;
+                int countConnections = 0;
+                int targetIndex = -1;
+                foreach (var targetPortal in portals)
+                {
+                    if (targetPortal != portal)
+                    {
+                        if ((id0 == targetPortal.id0) && (id1 == targetPortal.id1))
+                        {
+                            ++countConnections;
+                            targetIndex = GetNodeIndex(targetPortal.entryExitX, targetPortal.entryExitY);
+                        }
+                    }
+                }
+                if (nodeIndex == sStartNode)
+                {
+                    if (countConnections != 0)
+                    {
+                        throw new InvalidDataException($"Invalid for start point to have connections {countConnections}");
+                    }
+                }
+                else if (nodeIndex == sExitNode)
+                {
+                    if (countConnections != 0)
+                    {
+                        throw new InvalidDataException($"Invalid for exit point to have connections {countConnections}");
+                    }
+                }
+                else if (countConnections == 1)
+                {
+                    (int targetX, int targetY) = GetXYFromNodeIndex(targetIndex);
+                    Console.WriteLine($"Portal {(char)(portal.id0 - PORTAL_START + 'A')}{(char)(portal.id1 - PORTAL_START + 'A')} {portal.entryExitX},{portal.entryExitY} -> {targetX}, {targetY}");
+                }
+                else
+                {
+                    throw new InvalidDataException($"Invalid portal {portal.entryExitX},{portal.entryExitY} connections count {countConnections}");
+                }
+            }
 
             if (sStartNode == -1)
             {

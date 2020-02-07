@@ -78,7 +78,7 @@ namespace Day20
         [TestCaseSource("ShortestPathCases")]
         public void ShortestPath(string[] map, int expectedNumSteps)
         {
-            Program.ParseMap(map, false);
+            Program.ParseMap(map);
             Program.OutputMap(false);
             Assert.That(Program.ShortestPath(), Is.EqualTo(expectedNumSteps));
         }
