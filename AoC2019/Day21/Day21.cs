@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 
 /*
@@ -82,24 +83,161 @@ This one-instruction program sets J to true if and only if there is no ground fo
 .................
 .................
 #####@###########
+
 However, if the springdroid successfully makes it across, it will use an output instruction to indicate the amount of damage to the hull as a single giant integer outside the normal ASCII range.
 
 Program the springdroid with logic that allows it to survey the hull without falling into space. What amount of hull damage does it report?
 
+--- Part Two ---
+
+There are many areas the springdroid can't reach. You flip through the manual and discover a way to increase its sensor range.
+
+Instead of ending your springcode program with WALK, use RUN. Doing this will enable extended sensor mode, capable of sensing ground up to nine tiles away. This data is available in five new read-only registers:
+
+Register E indicates whether there is ground five tiles away.
+Register F indicates whether there is ground six tiles away.
+Register G indicates whether there is ground seven tiles away.
+Register H indicates whether there is ground eight tiles away.
+Register I indicates whether there is ground nine tiles away.
+All other functions remain the same.
+
+Successfully survey the rest of the hull by ending your program with RUN. What amount of hull damage does the springdroid now report?
+
 */
+
 namespace Day21
 {
     class Program
     {
+        static IntProgram sProgram = new IntProgram();
+        static List<long> sIntProgramInputsList;
+        static long[] sIntProgramInputsArray;
+        static string[] sSpringScriptProgram;
+
         private Program(string inputFile, bool part1)
         {
-            var elements = ReadProgram(inputFile);
+            sProgram.LoadProgram(inputFile);
+
+            if (part1)
+            {
+                sSpringScriptProgram = new string[] {
+
+                    // Must not get to these states
+                    //@.##. -> FALL OFF : ?.## : JUMP : YES
+                    //@..#. -> FALL OFF : ?..# : JUMP : YES
+                    //@.#.. -> FALL OFF : ?.#. : FALL OFF -> ??.# : JUMP : YES
+
+                    // What we want it to do
+                    //                A B C D
+                    //@...# -> JUMP : 0 0 0 1
+                    //@..## -> JUMP : 0 0 1 1
+                    //@.#.# -> JUMP : 0 1 0 1
+                    //@.### -> JUMP : 0 1 1 1 
+
+                    //@#..# -> JUMP : 1 0 0 1
+                    //@#.## -> JUMP : 1 0 1 1
+
+                    //@##.# -> JUMP : 1 1 0 1
+
+                    "NOT B T",
+                    "OR T J",
+
+                    "NOT C T",
+                    "AND B T",
+                    "OR T J",
+
+                    "AND A J",
+
+                    "NOT A T",
+                    "OR T J",
+                    "AND D J"
+                    //@#... -> NO JUMP
+                    //@#.#. -> NO JUMP
+                    //@##.. -> NO JUMP
+                    //@###. -> NO JUMP
+                    //@#### -> NO JUMP
+                        };
+                SetSpringScriptProgram(true);
+                var result = RunSpringScript();
+                Console.WriteLine($"Day21: Result1 {result}");
+                if (result != 19354818)
+                {
+                    throw new InvalidDataException($"Part1 is broken {result} != 19354818");
+                }
+            }
+            else
+            {
+                // States to avoid
+                sSpringScriptProgram = new string[] {
+                    "NOT B T",
+                    "OR T J",
+
+                    "NOT C T",
+                    "AND B T",
+                    "OR T J",
+
+                    "AND A J",
+
+                    "NOT A T",
+                    "OR T J",
+                    "AND D J"
+                        };
+                SetSpringScriptProgram(false);
+                var result = RunSpringScript();
+                Console.WriteLine($"Day21: Result2 {result}");
+            }
         }
 
-        private string[] ReadProgram(string inputFile)
+
+        static private long RunSpringScript()
         {
-            var elements = File.ReadAllLines(inputFile);
-            return elements;
+            bool halt = false;
+
+            long output = -123;
+            while (!halt)
+            {
+                halt = false;
+                bool hasOutput = false;
+                long result = sProgram.RunProgram(ref halt, ref hasOutput);
+                if ((result >= 10) && (result < 255))
+                {
+                    char c = (char)result;
+                    Console.Write(c);
+                }
+                if (hasOutput)
+                {
+                    output = result;
+                }
+            }
+            return output;
+        }
+
+        private static void SetSpringScriptProgram(bool walk)
+        {
+            sIntProgramInputsList = new List<long>(1024);
+            foreach (var instruction in sSpringScriptProgram)
+            {
+                AddSpringScriptInstruction(instruction);
+            }
+            if (walk)
+            {
+                AddSpringScriptInstruction("WALK");
+            }
+            else
+            {
+                AddSpringScriptInstruction("RUN");
+            }
+            sIntProgramInputsArray = sIntProgramInputsList.ToArray();
+            sProgram.SetInputData(sIntProgramInputsArray);
+        }
+
+        private static void AddSpringScriptInstruction(string instruction)
+        {
+            foreach (var c in instruction)
+            {
+                sIntProgramInputsList.Add(c);
+            }
+            sIntProgramInputsList.Add(10);
         }
 
         public static void Run()
