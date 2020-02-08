@@ -225,8 +225,8 @@ namespace Day20
         static int sStartNode;
         static int sExitNode;
         static Node[] sNodes;
-        static List<int>[] sLinks;
-        static List<(int id0, int id1, int entryIndex, int exitIndex)> sPortals;
+        static List<(int nodeIndex, int levelDelta)>[] sLinks;
+        static List<(int id0, int id1, int entryIndex, int exitIndex, int levelDelta)> sPortals;
 
         private Program(string inputFile, bool part1)
         {
@@ -248,9 +248,9 @@ namespace Day20
                 OutputMap(false);
                 var result = ShortestPath(true);
                 Console.WriteLine($"Day20 : Result2 {result}");
-                if (result != 714)
+                if (result != 7876)
                 {
-                    throw new InvalidDataException($"Part2 has been broken {result} != 714");
+                    throw new InvalidDataException($"Part2 has been broken {result} != 7876");
                 }
             }
         }
@@ -279,7 +279,7 @@ namespace Day20
             }
             sMap = new int[sMapSize.w, sMapSize.h];
             sNodes = new Node[sMapSize.w * sMapSize.h];
-            sLinks = new List<int>[sMapSize.w * sMapSize.h];
+            sLinks = new List<(int, int)>[sMapSize.w * sMapSize.h];
             sStartNode = -1;
             sExitNode = -1;
             var portalCells = new List<(int id, int x, int y)>(100);
@@ -491,7 +491,7 @@ namespace Day20
                 }
             }
             // Find the connected portal to make : PortalId: enterIndex exitIndex
-            sPortals = new List<(int id0, int id1, int entryIndex, int exitIndex)>(50);
+            sPortals = new List<(int id0, int id1, int entryIndex, int exitIndex, int levelDelta)>(50);
             foreach (var portal in portals)
             {
                 var nodeIndex = GetNodeIndex(portal.entryExitX, portal.entryExitY);
@@ -526,7 +526,36 @@ namespace Day20
                 }
                 else if (countConnections == 1)
                 {
-                    sPortals.Add((portal.id0, portal.id1, nodeIndex, targetIndex));
+                    int levelDelta = 0;
+                    // From inner edge -> outer edge : +1
+                    // From outer edge -> inner edge : -1
+                    (int exitX, int exitY) = GetXYFromNodeIndex(targetIndex);
+                    bool startIsInner = IsInnerEdge(portal.entryExitX, portal.entryExitY);
+                    bool startIsOuter = IsOuterEdge(portal.entryExitX, portal.entryExitY);
+                    bool exitIsInner = IsInnerEdge(exitX, exitY);
+                    bool exitIsOuter = IsOuterEdge(exitX, exitY);
+                    if (startIsInner == startIsOuter)
+                    {
+                        throw new InvalidDataException($"Invalid portal {portal.entryExitX},{portal.entryExitY} start is inner & outer");
+                    }
+                    if (exitIsInner == exitIsOuter)
+                    {
+                        throw new InvalidDataException($"Invalid portal {portal.entryExitX},{portal.entryExitY} exit is inner & outer");
+                    }
+                    if (startIsInner && exitIsOuter)
+                    {
+                        levelDelta = 1;
+                    }
+                    if (startIsOuter && exitIsInner)
+                    {
+                        levelDelta = -1;
+                    }
+
+                    if (levelDelta == 0)
+                    {
+                        throw new InvalidDataException($"Invalid portal {portal.entryExitX},{portal.entryExitY} levelDetla == 0");
+                    }
+                    sPortals.Add((portal.id0, portal.id1, nodeIndex, targetIndex, levelDelta));
                 }
                 else
                 {
@@ -550,7 +579,7 @@ namespace Day20
                 {
                     var nodeIndex = x + y * sMapSize.w;
                     int cell = sMap[x, y];
-                    sLinks[nodeIndex] = new List<int>();
+                    sLinks[nodeIndex] = new List<(int, int)>();
                     sLinks[nodeIndex].Clear();
                     if (cell == -1)
                     {
@@ -563,22 +592,22 @@ namespace Day20
                     if ((x - 1 >= 0) && (sMap[x - 1, y] != 1))
                     {
                         var targetNodeIndex = x - 1 + y * sMapSize.w;
-                        sLinks[nodeIndex].Add(targetNodeIndex);
+                        sLinks[nodeIndex].Add((targetNodeIndex, 0));
                     }
                     if ((x + 1 < sMapSize.w) && (sMap[x + 1, y] != 1))
                     {
                         var targetNodeIndex = x + 1 + y * sMapSize.w;
-                        sLinks[nodeIndex].Add(targetNodeIndex);
+                        sLinks[nodeIndex].Add((targetNodeIndex, 0));
                     }
                     if ((y - 1 >= 0) && (sMap[x, y - 1] != 1))
                     {
                         var targetNodeIndex = x + (y - 1) * sMapSize.w;
-                        sLinks[nodeIndex].Add(targetNodeIndex);
+                        sLinks[nodeIndex].Add((targetNodeIndex, 0));
                     }
                     if ((y + 1 < sMapSize.h) && (sMap[x, y + 1] != 1))
                     {
                         var targetNodeIndex = x + (y + 1) * sMapSize.w;
-                        sLinks[nodeIndex].Add(targetNodeIndex);
+                        sLinks[nodeIndex].Add((targetNodeIndex, 0));
                     }
                 }
             }
@@ -586,7 +615,7 @@ namespace Day20
             // Add links between portals
             foreach (var portal in sPortals)
             {
-                sLinks[portal.entryIndex].Add(portal.exitIndex);
+                sLinks[portal.entryIndex].Add((portal.exitIndex, portal.levelDelta));
             }
         }
 
@@ -628,7 +657,7 @@ namespace Day20
                 {
                     (int entryX, int entryY) = GetXYFromNodeIndex(portal.entryIndex);
                     (int exitX, int exitY) = GetXYFromNodeIndex(portal.exitIndex);
-                    Console.WriteLine($"Portal {(char)(portal.id0 - PORTAL_START + 'A')}{(char)(portal.id1 - PORTAL_START + 'A')} {entryX}, {entryY} -> {exitX}, {exitY}");
+                    Console.WriteLine($"Portal {(char)(portal.id0 - PORTAL_START + 'A')}{(char)(portal.id1 - PORTAL_START + 'A')} {entryX}, {entryY} -> {exitX}, {exitY} levelDelta:{portal.levelDelta}");
                 }
             }
 
@@ -640,14 +669,15 @@ namespace Day20
                     Console.WriteLine($"Node:{node.x},{node.y} {node.type}");
                     foreach (var linkTargetIndex in sLinks[nodeIndex])
                     {
-                        (int linkX, int linkY) = GetXYFromNodeIndex(linkTargetIndex);
-                        Console.WriteLine($"Link:{linkTargetIndex} {linkX},{linkY}");
+                        (int linkX, int linkY) = GetXYFromNodeIndex(linkTargetIndex.nodeIndex);
+                        Console.WriteLine($"Link:{linkTargetIndex} {linkX},{linkY} levelDelta:{linkTargetIndex.levelDelta}");
                     }
                 }
             }
             Console.WriteLine($"Map Dimensions:{sMapSize.w} x {sMapSize.h}");
             Console.WriteLine($"InnerBBOX:{sInnerWallBBOX.minX},{sInnerWallBBOX.minY} -> {sInnerWallBBOX.maxX},{sInnerWallBBOX.maxY}");
             Console.WriteLine($"OuterBBOX:{sOuterWallBBOX.minX},{sOuterWallBBOX.minY} -> {sOuterWallBBOX.maxX},{sOuterWallBBOX.maxY}");
+            Console.WriteLine($"PortalCount:{sPortals.Count}");
         }
 
         static int GetNodeIndex(int x, int y)
@@ -679,6 +709,32 @@ namespace Day20
             return -666;
         }
 
+        static bool IsInnerEdge(int x, int y)
+        {
+            if ((x == sInnerWallBBOX.minX) || (x == sInnerWallBBOX.maxX))
+            {
+                return true;
+            }
+            else if ((y == sInnerWallBBOX.minY) || (y == sInnerWallBBOX.maxY))
+            {
+                return true;
+            }
+            return false;
+        }
+
+        static bool IsOuterEdge(int x, int y)
+        {
+            if ((x == sOuterWallBBOX.minX) || (x == sOuterWallBBOX.maxX))
+            {
+                return true;
+            }
+            else if ((y == sOuterWallBBOX.minY) || (y == sOuterWallBBOX.maxY))
+            {
+                return true;
+            }
+            return false;
+        }
+
         public static int ShortestPath(bool part2)
         {
             return ShortestPath(sStartNode, sExitNode, part2);
@@ -688,35 +744,41 @@ namespace Day20
         {
             //(int fromX, int fromY) = GetXYFromNodeIndex(startIndex);
             //Console.WriteLine($"ShortestPath Start {startIndex} {fromX},{fromY}");
-            Queue<int> nodesToVisit = new Queue<int>();
-            nodesToVisit.Enqueue(startIndex);
-            bool[] visited = new bool[sNodes.Length];
-            int[] parents = new int[sNodes.Length];
+            Queue<(int nodeIndex, int level)> nodesToVisit = new Queue<(int, int)>();
+            nodesToVisit.Enqueue((startIndex, 0));
+            List<(int nodeIndex, int level)> visited = new List<(int, int)>(sNodes.Length * 100);
+            Dictionary<(int nodexIndex, int level), (int nodeIndex, int level)> parents = new Dictionary<(int, int), (int, int)>(sNodes.Length * 100);
             int minNumSteps = int.MaxValue;
-            for (int i = 0; i < parents.Length; ++i)
-            {
-                parents[i] = -1;
-            }
             while (nodesToVisit.Count > 0)
             {
-                int nodeIndex = nodesToVisit.Dequeue();
+                var node = nodesToVisit.Dequeue();
+                int nodeIndex = node.nodeIndex;
+                var currentLevel = part2 ? node.level : 0;
                 (int x, int y) = GetXYFromNodeIndex(nodeIndex);
-                //Console.WriteLine($"Node:{nodeIndex} {x},{y}");
+                //Console.WriteLine($"Node:{nodeIndex} {x},{y} Level {currentLevel}");
+                /*
                 if (nodeIndex == endIndex)
+                {
+                    Console.WriteLine($"Found the end {currentLevel}");
+                }
+                */
+                if ((nodeIndex == endIndex) && (currentLevel == 0))
                 {
                     //Console.WriteLine($"Solved");
                     int numSteps = 0;
-                    int currentNodeIndex = endIndex;
-                    while (currentNodeIndex != -1)
+                    (int, int) currentNode = (endIndex, 0);
+                    bool foundParent = true;
+                    while (foundParent)
                     {
-                        (x, y) = GetXYFromNodeIndex(currentNodeIndex);
+                        //(x, y) = GetXYFromNodeIndex(currentNodeIndex);
                         //Console.WriteLine($"Node:{currentNodeIndex} {x},{y}");
                         numSteps++;
-                        currentNodeIndex = parents[currentNodeIndex];
-                        if (currentNodeIndex == startIndex)
+                        foundParent = parents.TryGetValue(currentNode, out var parentNode);
+                        if (parentNode.nodeIndex == startIndex)
                         {
                             break;
                         }
+                        currentNode = parentNode;
                     }
                     //Console.WriteLine($"numSteps:{numSteps}");
                     if (numSteps < minNumSteps)
@@ -727,19 +789,15 @@ namespace Day20
 
                 foreach (var link in sLinks[nodeIndex])
                 {
-                    if (visited[link] == false)
+                    (int nodexIndex, int level) newLink = link;
+                    newLink.level = part2 ? currentLevel + link.levelDelta : 0;
+                    if ((newLink.level >= 0) && (newLink.level <= 25))
                     {
-                        int linkType = sNodes[link].type;
-                        bool validLink = true;
-                        if (link == endIndex)
+                        if (!visited.Contains(newLink))
                         {
-                            validLink = true;
-                        }
-                        if (validLink)
-                        {
-                            visited[link] = true;
-                            nodesToVisit.Enqueue(link);
-                            parents[link] = nodeIndex;
+                            visited.Add(newLink);
+                            nodesToVisit.Enqueue(newLink);
+                            parents[newLink] = (nodeIndex, currentLevel);
                         }
                     }
                 }
