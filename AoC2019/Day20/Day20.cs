@@ -80,6 +80,130 @@ Here, AA has no direct path to ZZ, but it does connect to AS and CP. By passing 
 
 In your maze, how many steps does it take to get from the open tile marked AA to the open tile marked ZZ?
 
+--- Part Two ---
+
+Strangely, the exit isn't open when you reach it. Then, you remember: the ancient Plutonians were famous for building recursive spaces.
+
+The marked connections in the maze aren't portals: they physically connect to a larger or smaller copy of the maze. Specifically, the labeled tiles around the inside edge actually connect to a smaller copy of the same maze, and the smaller copy's inner labeled tiles connect to yet a smaller copy, and so on.
+
+When you enter the maze, you are at the outermost level; when at the outermost level, only the outer labels AA and ZZ function (as the start and end, respectively); all other outer labeled tiles are effectively walls. At any other level, AA and ZZ count as walls, but the other outer labeled tiles bring you one level outward.
+
+Your goal is to find a path through the maze that brings you back to ZZ at the outermost level of the maze.
+
+In the first example above, the shortest path is now the loop around the right side. If the starting level is 0, then taking the previously-shortest path would pass through BC (to level 1), DE (to level 2), and FG (back to level 1). Because this is not the outermost level, ZZ is a wall, and the only option is to go back around to BC, which would only send you even deeper into the recursive maze.
+
+In the second example above, there is no path that brings you to ZZ at the outermost level.
+
+Here is a more interesting example:
+
+             Z L X W       C                 
+             Z P Q B       K                 
+  ###########.#.#.#.#######.###############  
+  #...#.......#.#.......#.#.......#.#.#...#  
+  ###.#.#.#.#.#.#.#.###.#.#.#######.#.#.###  
+  #.#...#.#.#...#.#.#...#...#...#.#.......#  
+  #.###.#######.###.###.#.###.###.#.#######  
+  #...#.......#.#...#...#.............#...#  
+  #.#########.#######.#.#######.#######.###  
+  #...#.#    F       R I       Z    #.#.#.#  
+  #.###.#    D       E C       H    #.#.#.#  
+  #.#...#                           #...#.#  
+  #.###.#                           #.###.#  
+  #.#....OA                       WB..#.#..ZH
+  #.###.#                           #.#.#.#  
+CJ......#                           #.....#  
+  #######                           #######  
+  #.#....CK                         #......IC
+  #.###.#                           #.###.#  
+  #.....#                           #...#.#  
+  ###.###                           #.#.#.#  
+XF....#.#                         RF..#.#.#  
+  #####.#                           #######  
+  #......CJ                       NM..#...#  
+  ###.#.#                           #.###.#  
+RE....#.#                           #......RF
+  ###.###        X   X       L      #.#.#.#  
+  #.....#        F   Q       P      #.#.#.#  
+  ###.###########.###.#######.#########.###  
+  #.....#...#.....#.......#...#.....#.#...#  
+  #####.#.###.#######.#######.###.###.#.#.#  
+  #.......#.......#.#.#.#.#...#...#...#.#.#  
+  #####.###.#####.#.#.#.#.###.###.#.###.###  
+  #.......#.....#.#...#...............#...#  
+  #############.#.#.###.###################  
+               A O F   N                     
+               A A D   M                     
+One shortest path through the maze is the following:
+
+Walk from AA to XF (16 steps)
+Recurse into level 1 through XF (1 step)
+Walk from XF to CK (10 steps)
+Recurse into level 2 through CK (1 step)
+Walk from CK to ZH (14 steps)
+Recurse into level 3 through ZH (1 step)
+Walk from ZH to WB (10 steps)
+Recurse into level 4 through WB (1 step)
+Walk from WB to IC (10 steps)
+Recurse into level 5 through IC (1 step)
+Walk from IC to RF (10 steps)
+Recurse into level 6 through RF (1 step)
+Walk from RF to NM (8 steps)
+Recurse into level 7 through NM (1 step)
+Walk from NM to LP (12 steps)
+Recurse into level 8 through LP (1 step)
+Walk from LP to FD (24 steps)
+Recurse into level 9 through FD (1 step)
+Walk from FD to XQ (8 steps)
+Recurse into level 10 through XQ (1 step)
+Walk from XQ to WB (4 steps)
+Return to level 9 through WB (1 step)
+Walk from WB to ZH (10 steps)
+Return to level 8 through ZH (1 step)
+Walk from ZH to CK (14 steps)
+Return to level 7 through CK (1 step)
+Walk from CK to XF (10 steps)
+Return to level 6 through XF (1 step)
+Walk from XF to OA (14 steps)
+Return to level 5 through OA (1 step)
+Walk from OA to CJ (8 steps)
+Return to level 4 through CJ (1 step)
+Walk from CJ to RE (8 steps)
+Return to level 3 through RE (1 step)
+Walk from RE to IC (4 steps)
+Recurse into level 4 through IC (1 step)
+Walk from IC to RF (10 steps)
+Recurse into level 5 through RF (1 step)
+Walk from RF to NM (8 steps)
+Recurse into level 6 through NM (1 step)
+Walk from NM to LP (12 steps)
+Recurse into level 7 through LP (1 step)
+Walk from LP to FD (24 steps)
+Recurse into level 8 through FD (1 step)
+Walk from FD to XQ (8 steps)
+Recurse into level 9 through XQ (1 step)
+Walk from XQ to WB (4 steps)
+Return to level 8 through WB (1 step)
+Walk from WB to ZH (10 steps)
+Return to level 7 through ZH (1 step)
+Walk from ZH to CK (14 steps)
+Return to level 6 through CK (1 step)
+Walk from CK to XF (10 steps)
+Return to level 5 through XF (1 step)
+Walk from XF to OA (14 steps)
+Return to level 4 through OA (1 step)
+Walk from OA to CJ (8 steps)
+Return to level 3 through CJ (1 step)
+Walk from CJ to RE (8 steps)
+Return to level 2 through RE (1 step)
+Walk from RE to XQ (14 steps)
+Return to level 1 through XQ (1 step)
+Walk from XQ to FD (8 steps)
+Return to level 0 through FD (1 step)
+Walk from FD to ZZ (18 steps)
+This path takes a total of 396 steps to move from AA at the outermost layer to ZZ at the outermost layer.
+
+In your maze, when accounting for recursion, how many steps does it take to get from the open tile marked AA to the open tile marked ZZ, both at the outermost layer?
+
 */
 
 namespace Day20
@@ -96,10 +220,13 @@ namespace Day20
         static readonly int PORTAL_START = 10;
         static int[,] sMap;
         static (int w, int h) sMapSize;
+        static (int minX, int minY, int maxX, int maxY) sOuterWallBBOX;
+        static (int minX, int minY, int maxX, int maxY) sInnerWallBBOX;
         static int sStartNode;
         static int sExitNode;
         static Node[] sNodes;
         static List<int>[] sLinks;
+        static List<(int id0, int id1, int entryIndex, int exitIndex)> sPortals;
 
         private Program(string inputFile, bool part1)
         {
@@ -107,12 +234,23 @@ namespace Day20
             if (part1)
             {
                 ParseMap(mapSource);
-                OutputMap(false);
-                var result = ShortestPath();
+                //OutputMap(false);
+                var result = ShortestPath(false);
                 Console.WriteLine($"Day20 : Result1 {result}");
-                if (result != 1023678)
+                if (result != 714)
                 {
-                    throw new InvalidDataException($"Part1 has been broken {result} ! 1023678");
+                    throw new InvalidDataException($"Part1 has been broken {result} != 714");
+                }
+            }
+            else
+            {
+                ParseMap(mapSource);
+                OutputMap(false);
+                var result = ShortestPath(true);
+                Console.WriteLine($"Day20 : Result2 {result}");
+                if (result != 714)
+                {
+                    throw new InvalidDataException($"Part2 has been broken {result} != 714");
                 }
             }
         }
@@ -179,6 +317,80 @@ namespace Day20
                     sNodes[nodeIndex].type = sMap[x, y];
                 }
             }
+
+            // Find the inner and outer wall bounding box
+            sOuterWallBBOX = (int.MaxValue, int.MaxValue, int.MinValue, int.MinValue);
+            foreach (var node in sNodes)
+            {
+                if (node.type != 1)
+                {
+                    continue;
+                }
+                var x = node.x;
+                var y = node.y;
+                if (GetMapCell(x - 1, y) == -1)
+                {
+                    sOuterWallBBOX.minX = Math.Min(sOuterWallBBOX.minX, x);
+                }
+                if (GetMapCell(x + 1, y) == -1)
+                {
+                    sOuterWallBBOX.maxX = Math.Max(sOuterWallBBOX.maxX, x);
+                }
+                if (GetMapCell(x, y - 1) == -1)
+                {
+                    sOuterWallBBOX.minY = Math.Min(sOuterWallBBOX.minY, y);
+                }
+                if (GetMapCell(x, y + 1) == -1)
+                {
+                    sOuterWallBBOX.maxY = Math.Max(sOuterWallBBOX.maxY, y);
+                }
+            }
+            if ((sOuterWallBBOX.minX == int.MaxValue) || (sOuterWallBBOX.minY == int.MaxValue) ||
+                (sOuterWallBBOX.maxX == int.MinValue) || (sOuterWallBBOX.maxY == int.MinValue))
+            {
+                throw new InvalidDataException($"Invalid OuterWallBBOX {sOuterWallBBOX.minX},{sOuterWallBBOX.minY} -> {sOuterWallBBOX.maxX},{sOuterWallBBOX.maxY}");
+            }
+
+            sInnerWallBBOX = (int.MaxValue, int.MaxValue, int.MinValue, int.MinValue);
+            foreach (var node in sNodes)
+            {
+                if (node.type != 1)
+                {
+                    continue;
+                }
+                var x = node.x;
+                var y = node.y;
+                if ((x == sOuterWallBBOX.minX) || (x == sOuterWallBBOX.maxX))
+                {
+                    continue;
+                }
+                if ((y == sOuterWallBBOX.minY) || (y == sOuterWallBBOX.maxY))
+                {
+                    continue;
+                }
+                if (GetMapCell(x + 1, y) == -1)
+                {
+                    sInnerWallBBOX.minX = Math.Min(sInnerWallBBOX.minX, x);
+                }
+                if (GetMapCell(x - 1, y) == -1)
+                {
+                    sInnerWallBBOX.maxX = Math.Max(sInnerWallBBOX.maxX, x);
+                }
+                if (GetMapCell(x, y + 1) == -1)
+                {
+                    sInnerWallBBOX.minY = Math.Min(sInnerWallBBOX.minY, y);
+                }
+                if (GetMapCell(x, y - 1) == -1)
+                {
+                    sInnerWallBBOX.maxY = Math.Max(sInnerWallBBOX.maxY, y);
+                }
+            }
+            if ((sInnerWallBBOX.minX == int.MaxValue) || (sInnerWallBBOX.minY == int.MaxValue) ||
+                (sInnerWallBBOX.maxX == int.MinValue) || (sInnerWallBBOX.maxY == int.MinValue))
+            {
+                throw new InvalidDataException($"Invalid InnerWallBBOX {sInnerWallBBOX.minX},{sInnerWallBBOX.minY} -> {sInnerWallBBOX.maxX},{sInnerWallBBOX.maxY}");
+            }
+
 
             // Parse the portals and connect them together
             // Find the other portal letter, entry/exit point, is the map start or end
@@ -279,6 +491,7 @@ namespace Day20
                 }
             }
             // Find the connected portal to make : PortalId: enterIndex exitIndex
+            sPortals = new List<(int id0, int id1, int entryIndex, int exitIndex)>(50);
             foreach (var portal in portals)
             {
                 var nodeIndex = GetNodeIndex(portal.entryExitX, portal.entryExitY);
@@ -313,8 +526,7 @@ namespace Day20
                 }
                 else if (countConnections == 1)
                 {
-                    (int targetX, int targetY) = GetXYFromNodeIndex(targetIndex);
-                    Console.WriteLine($"Portal {(char)(portal.id0 - PORTAL_START + 'A')}{(char)(portal.id1 - PORTAL_START + 'A')} {portal.entryExitX},{portal.entryExitY} -> {targetX}, {targetY}");
+                    sPortals.Add((portal.id0, portal.id1, nodeIndex, targetIndex));
                 }
                 else
                 {
@@ -370,6 +582,12 @@ namespace Day20
                     }
                 }
             }
+
+            // Add links between portals
+            foreach (var portal in sPortals)
+            {
+                sLinks[portal.entryIndex].Add(portal.exitIndex);
+            }
         }
 
         public static void OutputMap(bool detailed)
@@ -406,6 +624,16 @@ namespace Day20
 
             if (detailed)
             {
+                foreach (var portal in sPortals)
+                {
+                    (int entryX, int entryY) = GetXYFromNodeIndex(portal.entryIndex);
+                    (int exitX, int exitY) = GetXYFromNodeIndex(portal.exitIndex);
+                    Console.WriteLine($"Portal {(char)(portal.id0 - PORTAL_START + 'A')}{(char)(portal.id1 - PORTAL_START + 'A')} {entryX}, {entryY} -> {exitX}, {exitY}");
+                }
+            }
+
+            if (detailed)
+            {
                 for (int nodeIndex = 0; nodeIndex < sNodes.Length; ++nodeIndex)
                 {
                     var node = sNodes[nodeIndex];
@@ -417,6 +645,9 @@ namespace Day20
                     }
                 }
             }
+            Console.WriteLine($"Map Dimensions:{sMapSize.w} x {sMapSize.h}");
+            Console.WriteLine($"InnerBBOX:{sInnerWallBBOX.minX},{sInnerWallBBOX.minY} -> {sInnerWallBBOX.maxX},{sInnerWallBBOX.maxY}");
+            Console.WriteLine($"OuterBBOX:{sOuterWallBBOX.minX},{sOuterWallBBOX.minY} -> {sOuterWallBBOX.maxX},{sOuterWallBBOX.maxY}");
         }
 
         static int GetNodeIndex(int x, int y)
@@ -448,12 +679,12 @@ namespace Day20
             return -666;
         }
 
-        public static int ShortestPath()
+        public static int ShortestPath(bool part2)
         {
-            return ShortestPath(sStartNode, sExitNode);
+            return ShortestPath(sStartNode, sExitNode, part2);
         }
 
-        static int ShortestPath(int startIndex, int endIndex)
+        static int ShortestPath(int startIndex, int endIndex, bool part2)
         {
             //(int fromX, int fromY) = GetXYFromNodeIndex(startIndex);
             //Console.WriteLine($"ShortestPath Start {startIndex} {fromX},{fromY}");
