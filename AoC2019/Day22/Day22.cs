@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 
 /*
@@ -145,15 +146,150 @@ namespace Day22
 {
     class Program
     {
+        static int sDeckSize;
+        static int[] sDeck;
+        static int[] sWorkingDeck;
+
         private Program(string inputFile, bool part1)
         {
-            var elements = ReadProgram(inputFile);
+            var instructions = ReadProgram(inputFile);
+            CreateDeck(10007);
+
+            if (part1)
+            {
+                RunInstructions(instructions);
+                var result = -123;
+                for (int i = 0; i < sDeckSize; ++i)
+                {
+                    if (sDeck[i] == 2019)
+                    {
+                        result = i;
+                    }
+                }
+                var expected = 6638;
+                Console.WriteLine($"Day22: Result1 {result}");
+                if (result != expected)
+                {
+                    throw new InvalidDataException($"Part1 is broken {result} != {expected}");
+                }
+            }
         }
 
         private string[] ReadProgram(string inputFile)
         {
-            var elements = File.ReadAllLines(inputFile);
-            return elements;
+            var instructions = File.ReadAllLines(inputFile);
+            return instructions;
+        }
+
+        public static void CreateDeck(int count)
+        {
+            sDeckSize = count;
+            sDeck = new int[sDeckSize];
+            sWorkingDeck = new int[sDeckSize];
+            for (var i = 0; i < sDeckSize; ++i)
+            {
+                sDeck[i] = i;
+            }
+        }
+
+        public static void RunInstructions(string[] instructions)
+        {
+            if (instructions == null)
+            {
+                return;
+            }
+            foreach (var instruction in instructions)
+            {
+                CopyDeckIntoWorkingDeck();
+                ApplyInstruction(instruction);
+            }
+        }
+
+        private static void ApplyInstruction(string instruction)
+        {
+            // "deal with increment XXX",
+            if (instruction.StartsWith("deal with increment "))
+            {
+                string amount = instruction.Split("deal with increment ")[1];
+                int incrementAmount = int.Parse(amount);
+                DealWithIncrement(incrementAmount);
+            }
+            // "deal into new stack"
+            else if (instruction.StartsWith("deal into new stack"))
+            {
+                DealIntoNewStack();
+            }
+            // "cut XXX"
+            else if (instruction.StartsWith("cut "))
+            {
+                string amount = instruction.Split("cut ")[1];
+                int cutAmount = int.Parse(amount);
+                while (cutAmount < 0)
+                {
+                    cutAmount += sDeckSize;
+                }
+                Cut(cutAmount);
+            }
+            else
+            {
+                throw new ArgumentException($"Unknown instruction {instruction}", nameof(instruction));
+            }
+        }
+
+        private static void DealWithIncrement(int incrementAmount)
+        {
+            int newPosition = 0;
+            for (var i = 0; i < sDeckSize; ++i)
+            {
+                sDeck[newPosition] = sWorkingDeck[i];
+                newPosition += incrementAmount;
+                newPosition %= sDeckSize;
+            }
+        }
+
+        private static void DealIntoNewStack()
+        {
+            for (var i = 0; i < sDeckSize; ++i)
+            {
+                int newPosition = sDeckSize - 1 - i;
+                sDeck[newPosition] = sWorkingDeck[i];
+            }
+        }
+
+        private static void Cut(int cutAmount)
+        {
+            for (var i = 0; i < sDeckSize; ++i)
+            {
+                int newPosition = (i - cutAmount);
+                while (newPosition < 0)
+                {
+                    newPosition += sDeckSize;
+                }
+                newPosition %= sDeckSize;
+                sDeck[newPosition] = sWorkingDeck[i];
+            }
+        }
+
+        private static void CopyDeckIntoWorkingDeck()
+        {
+            for (var i = 0; i < sDeckSize; ++i)
+            {
+                sWorkingDeck[i] = sDeck[i];
+            }
+        }
+
+        public static string DeckAsString()
+        {
+            if (sDeckSize < 1)
+            {
+                throw new InvalidDataException($"Deck Size must be >= 1 {sDeckSize}");
+            }
+            string result = sDeck[0].ToString();
+            for (var i = 1; i < sDeckSize; ++i)
+            {
+                result += $" {sDeck[i]}";
+            }
+            return result;
         }
 
         public static void Run()
