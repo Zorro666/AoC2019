@@ -122,40 +122,32 @@ namespace Day21
             {
                 sSpringScriptProgram = new string[] {
 
-                    // Must not get to these states
-                    //@.##. -> FALL OFF : ?.## : JUMP : YES
-                    //@..#. -> FALL OFF : ?..# : JUMP : YES
-                    //@.#.. -> FALL OFF : ?.#. : FALL OFF -> ??.# : JUMP : YES
+// Must not get to these states
+//@.##. -> FALL OFF : ?.## : JUMP : YES
+//@..#. -> FALL OFF : ?..# : JUMP : YES
+//@.#.. -> FALL OFF : ?.#. : FALL OFF -> ??.# : JUMP : YES
 
-                    // What we want it to do
-                    //                A B C D
-                    //@...# -> JUMP : 0 0 0 1
-                    //@..## -> JUMP : 0 0 1 1
-                    //@.#.# -> JUMP : 0 1 0 1
-                    //@.### -> JUMP : 0 1 1 1 
+// What we want it to do
+//                A B C D
+//@...# -> JUMP : 0 0 0 1
+//@..## -> JUMP : 0 0 1 1
+//@.#.# -> JUMP : 0 1 0 1
+//@.### -> JUMP : 0 1 1 1 
 
-                    //@#..# -> JUMP : 1 0 0 1
-                    //@#.## -> JUMP : 1 0 1 1
+//@#..# -> JUMP : 1 0 0 1
+//@#.## -> JUMP : 1 0 1 1
 
-                    //@##.# -> JUMP : 1 1 0 1
+//@##.# -> JUMP : 1 1 0 1
 
-                    "NOT B T",
-                    "OR T J",
+//@#### -> WALK : 1 1 1 1
+//@???. -> WALK : ? ? ? 0
 
-                    "NOT C T",
-                    "AND B T",
-                    "OR T J",
-
-                    "AND A J",
-
-                    "NOT A T",
-                    "OR T J",
-                    "AND D J"
-                    //@#... -> NO JUMP
-                    //@#.#. -> NO JUMP
-                    //@##.. -> NO JUMP
-                    //@###. -> NO JUMP
-                    //@#### -> NO JUMP
+"NOT A T",
+"NOT T T",
+"AND B T",
+"AND C T",
+"NOT T J",
+"AND D J"
                         };
                 SetSpringScriptProgram(true);
                 var result = RunSpringScript();
@@ -169,22 +161,39 @@ namespace Day21
             {
                 // States to avoid
                 sSpringScriptProgram = new string[] {
-                    "NOT B T",
-                    "OR T J",
+// ABCDEFGHI
+//@.???????? : JUMP : !A
+//@?.?#.???? : JUMP : !B & !E = !(B | E)
+//@??.##???? : JUMP : !C & D & E
+//@??.#???#? : JUMP : !C & D & H
 
-                    "NOT C T",
-                    "AND B T",
-                    "OR T J",
+// J = !C & D & (H | E)
+"NOT C J",
+"AND D J",
+"NOT E T",
+"NOT T T",
+"OR H T",
+"AND T J",
 
-                    "AND A J",
+// T = !(B | E)
+"NOT B T",
+"NOT T T",
+"OR E T",
+"NOT T T",
+// J = (!C & D & (H | E)) | (!B & !E)
+"OR T J",
 
-                    "NOT A T",
-                    "OR T J",
-                    "AND D J"
+// J = (!C & D & (H | E)) | (!B & !E) | !A
+"NOT A T",
+"OR T J"
                         };
                 SetSpringScriptProgram(false);
                 var result = RunSpringScript();
                 Console.WriteLine($"Day21: Result2 {result}");
+                if (result != 1143787220)
+                {
+                    throw new InvalidDataException($"Part1 is broken {result} != 1143787220");
+                }
             }
         }
 
