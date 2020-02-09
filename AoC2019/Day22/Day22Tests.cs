@@ -6,7 +6,7 @@ namespace Day22
     public class Tests
     {
         [Test]
-        public void Day11Tests(string parent, string node)
+        public void Day22Tests(string parent, string node)
         {
             Assert.Fail();
         }
