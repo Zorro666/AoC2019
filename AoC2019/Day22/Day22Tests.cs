@@ -123,6 +123,10 @@ namespace Day22
             Program.CreateDeck(10);
             Program.RunInstructions(instructions);
             Assert.That(Program.DeckAsString(), Is.EqualTo(expectedResult));
+
+            Program.CreateDeck(10);
+            Program.ApplyInstructionsUsingEquation(instructions);
+            Assert.That(Program.DeckAsString(), Is.EqualTo(expectedResult));
         }
     }
 }

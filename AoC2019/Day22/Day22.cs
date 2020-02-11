@@ -141,7 +141,27 @@ Positions within the deck count from 0 at the top, then 1 for the card immediate
 
 After shuffling your factory order deck of 10007 cards, what is the position of card 2019?
 
+    
+Your puzzle answer was 6638.
+
+The first half of this puzzle is complete! It provides one gold star: *
+
+--- Part Two ---
+
+After a while, you realize your shuffling skill won't improve much more with merely a single deck of cards. You ask every 3D printer on the ship to make you some more cards while you check on the ship repairs. While reviewing the work the droids have finished so far, you think you see Halley's Comet fly past!
+
+When you get back, you discover that the 3D printers have combined their power to create for you a single, giant, brand new, factory order deck of 119315717514047 space cards.
+
+Finally, a deck of cards worthy of shuffling!
+
+You decide to apply your complete shuffle process (your puzzle input) to the deck 101741582076661 times in a row.
+
+You'll need to be careful, though - one wrong move with this many cards and you might overflow your entire ship!
+
+After shuffling your new, giant, factory order deck that many times, what number is on the card that ends up in position 2020?
+
 */
+
 namespace Day22
 {
     class Program
@@ -153,24 +173,25 @@ namespace Day22
         private Program(string inputFile, bool part1)
         {
             var instructions = ReadProgram(inputFile);
-            CreateDeck(10007);
 
             if (part1)
             {
+                CreateDeck(10007);
                 RunInstructions(instructions);
-                var result = -123;
-                for (int i = 0; i < sDeckSize; ++i)
-                {
-                    if (sDeck[i] == 2019)
-                    {
-                        result = i;
-                    }
-                }
+                var result = FindCard(2019);
                 var expected = 6638;
                 Console.WriteLine($"Day22: Result1 {result}");
                 if (result != expected)
                 {
                     throw new InvalidDataException($"Part1 is broken {result} != {expected}");
+                }
+                CreateDeck(10007);
+                ApplyInstructionsUsingEquation(instructions);
+                var result2 = FindCard(2019);
+                Console.WriteLine($"Day22: Result1 Equation {result2}");
+                if (result != result2)
+                {
+                    throw new InvalidDataException($"Equation mode not working {result2} != {result}");
                 }
             }
         }
@@ -179,6 +200,19 @@ namespace Day22
         {
             var instructions = File.ReadAllLines(inputFile);
             return instructions;
+        }
+
+        private static int FindCard(int cardValue)
+        {
+            int cardIndex = -123;
+            for (int i = 0; i < sDeckSize; ++i)
+            {
+                if (sDeck[i] == cardValue)
+                {
+                    cardIndex = i;
+                }
+            }
+            return cardIndex;
         }
 
         public static void CreateDeck(int count)
@@ -192,6 +226,27 @@ namespace Day22
             }
         }
 
+        public static void ApplyInstructionsUsingEquation(string[] instructions)
+        {
+            if (instructions == null)
+            {
+                return;
+            }
+            long A = 1;
+            long B = 0;
+            foreach (var instruction in instructions)
+            {
+                long A1 = A;
+                long B1 = B;
+                (long A2, long B2) = ApplyInstruction(instruction);
+                (A, B) = CombineEquation(A1, B1, A2, B2);
+                A %= sDeckSize;
+                B %= sDeckSize;
+            }
+            CopyDeckIntoWorkingDeck();
+            ApplyEquation(A, B);
+        }
+
         public static void RunInstructions(string[] instructions)
         {
             if (instructions == null)
@@ -201,23 +256,26 @@ namespace Day22
             foreach (var instruction in instructions)
             {
                 CopyDeckIntoWorkingDeck();
-                ApplyInstruction(instruction);
+                (long A, long B) = ApplyInstruction(instruction);
+                ApplyEquation(A, B);
             }
         }
 
-        private static void ApplyInstruction(string instruction)
+        private static (long A, long B) ApplyInstruction(string instruction)
         {
+            long A;
+            long B;
             // "deal with increment XXX",
             if (instruction.StartsWith("deal with increment "))
             {
                 string amount = instruction.Split("deal with increment ")[1];
                 int incrementAmount = int.Parse(amount);
-                DealWithIncrement(incrementAmount);
+                (A, B) = DealWithIncrement(incrementAmount);
             }
             // "deal into new stack"
             else if (instruction.StartsWith("deal into new stack"))
             {
-                DealIntoNewStack();
+                (A, B) = DealIntoNewStack();
             }
             // "cut XXX"
             else if (instruction.StartsWith("cut "))
@@ -228,46 +286,60 @@ namespace Day22
                 {
                     cutAmount += sDeckSize;
                 }
-                Cut(cutAmount);
+                (A, B) = Cut(cutAmount);
             }
             else
             {
                 throw new ArgumentException($"Unknown instruction {instruction}", nameof(instruction));
             }
+            return (A, B);
         }
 
-        private static void DealWithIncrement(int incrementAmount)
+        private static (long A, long B) DealWithIncrement(int incrementAmount)
         {
-            int newPosition = 0;
-            for (var i = 0; i < sDeckSize; ++i)
-            {
-                sDeck[newPosition] = sWorkingDeck[i];
-                newPosition += incrementAmount;
-                newPosition %= sDeckSize;
-            }
+            long A = incrementAmount;
+            long B = 0;
+            return (A, B);
         }
 
-        private static void DealIntoNewStack()
+        private static (long A, long B) DealIntoNewStack()
         {
-            for (var i = 0; i < sDeckSize; ++i)
-            {
-                int newPosition = sDeckSize - 1 - i;
-                sDeck[newPosition] = sWorkingDeck[i];
-            }
+            long A = -1;
+            long B = sDeckSize - 1;
+            return (A, B);
         }
 
-        private static void Cut(int cutAmount)
+        private static (long A, long B) Cut(int cutAmount)
+        {
+            long A = +1;
+            long B = sDeckSize - cutAmount;
+            return (A, B);
+        }
+
+        private static void ApplyEquation(long A, long B)
         {
             for (var i = 0; i < sDeckSize; ++i)
             {
-                int newPosition = (i - cutAmount);
+                long newPosition = (A * i + B) % sDeckSize;
                 while (newPosition < 0)
                 {
                     newPosition += sDeckSize;
                 }
-                newPosition %= sDeckSize;
                 sDeck[newPosition] = sWorkingDeck[i];
             }
+        }
+
+        private static (long newA, long newB) CombineEquation(long A1, long B1, long A2, long B2)
+        {
+            // y1 = a1 * x + b1
+            // y2 = a2 * y1 + b2
+            // y2 = a2 * (a1 * x + b1) + b2
+            // y2 = a2 * a1 * x + a2 * b1 + b2
+            // A = a2 * a1
+            // B = a2 * b1 + b2
+            long newA = A2 * A1;
+            long newB = A2 * B1 + B2;
+            return (newA, newB);
         }
 
         private static void CopyDeckIntoWorkingDeck()
