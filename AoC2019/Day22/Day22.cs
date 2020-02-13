@@ -1,6 +1,6 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
+using System.Numerics;
 
 /*
 
@@ -166,7 +166,7 @@ namespace Day22
 {
     class Program
     {
-        static int sDeckSize;
+        static BigInteger sDeckSize;
         static int[] sDeck;
         static int[] sWorkingDeck;
 
@@ -185,6 +185,7 @@ namespace Day22
                 {
                     throw new InvalidDataException($"Part1 is broken {result} != {expected}");
                 }
+
                 CreateDeck(10007);
                 ApplyInstructionsUsingEquation(instructions);
                 var result2 = FindCard(2019);
@@ -194,6 +195,84 @@ namespace Day22
                     throw new InvalidDataException($"Equation mode not working {result2} != {result}");
                 }
             }
+            else
+            {
+                // y1 = A * x + B
+                // y2 = A * y1 + B
+                // y2 = A * A * X + A * B + B
+                // y3 = A * A * A * X + A * A * B + A * B + B
+                // YN = A^N * X + B * (SUM(A^n : 0 -> N-1)
+                // 1 + A + A*A + A*A*A + A*A*A*A
+                // SUM(A^n : 0 -> N) = S
+                // S = 1 + A * (1 + A + A * A + ... A^N-1) = 1 + A * (S - A^N)
+                // S = 1 + A * (S - A^N)
+                // S = 1 + A * S - A * A^N
+                // S * (1-A) = 1 - A^(N+1)
+                // S  = 1 - A^(N+1) / (1-A)
+                // SUM(A^n : 0 -> N-1) = (1-A^N)/(1-A)
+                // allA = A^N % DECKSIZE
+                // allB = (1 - A^N % DECKSIZE) / (1-A)
+                // allB = B * (1 - modpow(A, N, DECKSIZE)) * modpow(1-A, -1, DECKSIZE)
+
+                // Decksize = 119315717514047
+                // Apply shuffling operation : 101741582076661 times
+                // N & sDeckSize are both prime
+                BigInteger N = 101741582076661;
+                sDeckSize = 119315717514047;
+                (BigInteger repeatedA, BigInteger repeatedB) = SolveForN(instructions, N);
+                BigInteger result = (repeatedA * 2020 + repeatedB);
+                result = ModuloDeckSize(result);
+                Console.WriteLine($"Day22: Result2 {result}");
+                var expected = 77863024474406;
+                if (result != expected)
+                {
+                    throw new InvalidDataException($"Part2 is broken {result} != {expected}");
+                }
+            }
+        }
+
+        public static (BigInteger, BigInteger) SolveForN(string[] instructions, BigInteger N)
+        {
+            (BigInteger A, BigInteger B) = ConvertInstructionsToEquationLargeDeck(instructions);
+            Console.WriteLine($"A: {A}");
+            Console.WriteLine($"B: {B}");
+            BigInteger repeatedA;
+            BigInteger repeatedB;
+            if (A != 1)
+            {
+                repeatedA = BigInteger.ModPow(A, N, sDeckSize);
+                repeatedB = B * (repeatedA + sDeckSize - 1);
+                Console.WriteLine($"allB1: {repeatedB}");
+                Console.WriteLine($"1/(A-1): {ModInverse(A - 1)}");
+                repeatedB *= ModInverse(A - 1);
+            }
+            else
+            {
+                repeatedA = 1;
+                repeatedB = B * N;
+            }
+            repeatedA = ModuloDeckSize(repeatedA);
+            repeatedB = ModuloDeckSize(repeatedB);
+            Console.WriteLine($"allA: {repeatedA}");
+            Console.WriteLine($"allB: {repeatedB}");
+            return (repeatedA, repeatedB);
+        }
+
+        private static BigInteger ModuloDeckSize(BigInteger x)
+        {
+            BigInteger result = x;
+            result %= sDeckSize;
+            while (result < 0)
+            {
+                result += sDeckSize;
+            }
+            result %= sDeckSize;
+            return result;
+        }
+
+        private static BigInteger ModInverse(BigInteger a)
+        {
+            return BigInteger.ModPow(a, sDeckSize - 2, sDeckSize);
         }
 
         private string[] ReadProgram(string inputFile)
@@ -218,31 +297,114 @@ namespace Day22
         public static void CreateDeck(int count)
         {
             sDeckSize = count;
-            sDeck = new int[sDeckSize];
-            sWorkingDeck = new int[sDeckSize];
+            sDeck = new int[(int)sDeckSize];
+            sWorkingDeck = new int[(int)sDeckSize];
             for (var i = 0; i < sDeckSize; ++i)
             {
                 sDeck[i] = i;
             }
         }
 
-        public static void ApplyInstructionsUsingEquation(string[] instructions)
+        public static (BigInteger A, BigInteger B) ConvertInstructionsToEquationLargeDeck(string[] instructions)
         {
+            BigInteger A = 1;
+            BigInteger B = 0;
             if (instructions == null)
             {
-                return;
+                return (A, B);
             }
-            long A = 1;
-            long B = 0;
+
+            // Do the instructions in reverse
+            var instructionCount = instructions.Length;
+            for (int i = 0; i < instructionCount; ++i)
+            {
+                var instruction = instructions[instructionCount - 1 - i];
+                // "deal with increment XXX",
+                if (instruction.StartsWith("deal with increment "))
+                {
+                    string amount = instruction.Split("deal with increment ")[1];
+                    int incrementAmount = int.Parse(amount);
+                    BigInteger inverse = ModInverse(incrementAmount);
+                    A *= inverse;
+                    B *= inverse;
+                }
+                // "deal into new stack"
+                else if (instruction.StartsWith("deal into new stack"))
+                {
+                    A *= -1;
+                    B = -(B + 1);
+                }
+                // "cut XXX"
+                else if (instruction.StartsWith("cut "))
+                {
+                    string amount = instruction.Split("cut ")[1];
+                    BigInteger cutAmount = int.Parse(amount);
+                    B += cutAmount;
+                }
+                else
+                {
+                    throw new ArgumentException($"Unknown instruction {instruction}", nameof(instruction));
+                }
+            }
+            A = ModuloDeckSize(A);
+            B = ModuloDeckSize(B);
+            return (A, B);
+        }
+
+        public static (BigInteger A, BigInteger B) ConvertInstructionsToEquationSmallDeck(string[] instructions)
+        {
+            BigInteger A = 1;
+            BigInteger B = 0;
+            if (instructions == null)
+            {
+                return (A, B);
+            }
+
             foreach (var instruction in instructions)
             {
-                long A1 = A;
-                long B1 = B;
-                (long A2, long B2) = ApplyInstruction(instruction);
-                (A, B) = CombineEquation(A1, B1, A2, B2);
-                A %= sDeckSize;
-                B %= sDeckSize;
+                // "deal with increment XXX",
+                if (instruction.StartsWith("deal with increment "))
+                {
+                    string amount = instruction.Split("deal with increment ")[1];
+                    int incrementAmount = int.Parse(amount);
+                    // A = a2 * A
+                    // B = a2 * B + b2
+                    A *= incrementAmount;
+                    B *= incrementAmount;
+                }
+                // "deal into new stack"
+                else if (instruction.StartsWith("deal into new stack"))
+                {
+                    A *= -1;
+                    B = -(B + 1);
+                }
+                // "cut XXX"
+                else if (instruction.StartsWith("cut "))
+                {
+                    string amount = instruction.Split("cut ")[1];
+                    BigInteger cutAmount = int.Parse(amount);
+                    B -= cutAmount;
+                }
+                else
+                {
+                    throw new ArgumentException($"Unknown instruction {instruction}", nameof(instruction));
+                }
             }
+            A = ModuloDeckSize(A);
+            B = ModuloDeckSize(B);
+            return (A, B);
+        }
+
+        public static void ApplyInstructionsUsingEquation(string[] instructions)
+        {
+            (BigInteger A, BigInteger B) = ConvertInstructionsToEquationSmallDeck(instructions);
+            CopyDeckIntoWorkingDeck();
+            ApplyEquation(A, B);
+        }
+
+        public static void ApplyInstructionsUsingN(string[] instructions, int N)
+        {
+            (BigInteger A, BigInteger B) = SolveForN(instructions, N);
             CopyDeckIntoWorkingDeck();
             ApplyEquation(A, B);
         }
@@ -256,90 +418,55 @@ namespace Day22
             foreach (var instruction in instructions)
             {
                 CopyDeckIntoWorkingDeck();
-                (long A, long B) = ApplyInstruction(instruction);
+                (BigInteger A, BigInteger B) = ApplyInstruction(instruction);
                 ApplyEquation(A, B);
             }
         }
 
-        private static (long A, long B) ApplyInstruction(string instruction)
+        private static (BigInteger A, BigInteger B) ApplyInstruction(string instruction)
         {
-            long A;
-            long B;
+            BigInteger A;
+            BigInteger B;
             // "deal with increment XXX",
             if (instruction.StartsWith("deal with increment "))
             {
                 string amount = instruction.Split("deal with increment ")[1];
                 int incrementAmount = int.Parse(amount);
-                (A, B) = DealWithIncrement(incrementAmount);
+                A = incrementAmount;
+                B = 0;
             }
             // "deal into new stack"
             else if (instruction.StartsWith("deal into new stack"))
             {
-                (A, B) = DealIntoNewStack();
+                A = -1;
+                B = -1;
             }
             // "cut XXX"
             else if (instruction.StartsWith("cut "))
             {
                 string amount = instruction.Split("cut ")[1];
-                int cutAmount = int.Parse(amount);
-                while (cutAmount < 0)
-                {
-                    cutAmount += sDeckSize;
-                }
-                (A, B) = Cut(cutAmount);
+                BigInteger cutAmount = int.Parse(amount);
+                cutAmount = ModuloDeckSize(cutAmount);
+                A = +1;
+                B = -cutAmount;
             }
             else
             {
                 throw new ArgumentException($"Unknown instruction {instruction}", nameof(instruction));
             }
+            A = ModuloDeckSize(A);
+            B = ModuloDeckSize(B);
             return (A, B);
         }
 
-        private static (long A, long B) DealWithIncrement(int incrementAmount)
-        {
-            long A = incrementAmount;
-            long B = 0;
-            return (A, B);
-        }
-
-        private static (long A, long B) DealIntoNewStack()
-        {
-            long A = -1;
-            long B = sDeckSize - 1;
-            return (A, B);
-        }
-
-        private static (long A, long B) Cut(int cutAmount)
-        {
-            long A = +1;
-            long B = sDeckSize - cutAmount;
-            return (A, B);
-        }
-
-        private static void ApplyEquation(long A, long B)
+        private static void ApplyEquation(BigInteger A, BigInteger B)
         {
             for (var i = 0; i < sDeckSize; ++i)
             {
-                long newPosition = (A * i + B) % sDeckSize;
-                while (newPosition < 0)
-                {
-                    newPosition += sDeckSize;
-                }
-                sDeck[newPosition] = sWorkingDeck[i];
+                BigInteger newPosition = (A * i + B);
+                newPosition = ModuloDeckSize(newPosition);
+                sDeck[(long)newPosition] = sWorkingDeck[i];
             }
-        }
-
-        private static (long newA, long newB) CombineEquation(long A1, long B1, long A2, long B2)
-        {
-            // y1 = a1 * x + b1
-            // y2 = a2 * y1 + b2
-            // y2 = a2 * (a1 * x + b1) + b2
-            // y2 = a2 * a1 * x + a2 * b1 + b2
-            // A = a2 * a1
-            // B = a2 * b1 + b2
-            long newA = A2 * A1;
-            long newB = A2 * B1 + B2;
-            return (newA, newB);
         }
 
         private static void CopyDeckIntoWorkingDeck()
