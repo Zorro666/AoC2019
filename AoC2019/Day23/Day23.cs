@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 
 /*
@@ -27,15 +28,111 @@ namespace Day23
 {
     class Program
     {
+        static readonly int COMPUTER_COUNT = 50;
+        static readonly IntProgram[] sComputers = new IntProgram[COMPUTER_COUNT];
+        static readonly List<long>[] sInputs = new List<long>[COMPUTER_COUNT];
+
         private Program(string inputFile, bool part1)
         {
-            var elements = ReadProgram(inputFile);
+            var program = ReadProgram(inputFile);
+            for (var i = 0; i < COMPUTER_COUNT; ++i)
+            {
+                sComputers[i].CreateProgram(program);
+                sComputers[i].SetNextInput(i);
+                sInputs[i] = new List<long>();
+                sInputs[i].Clear();
+            }
+
+            if (part1)
+            {
+                bool foundAnswer = false;
+                long result1 = -123;
+                while (!foundAnswer)
+                {
+                    for (var i = 0; i < COMPUTER_COUNT; ++i)
+                    {
+                        bool halt = false;
+                        bool readInput = false;
+                        bool hasOutput = false;
+                        long result = sComputers[i].SingleStep(ref halt, ref hasOutput, ref readInput);
+                        if (halt)
+                        {
+                            if (readInput)
+                            {
+                                throw new InvalidProgramException($"halt when sending input to computer {i}");
+                            }
+                            if (hasOutput)
+                            {
+                                throw new InvalidProgramException($"halt when reading output from computer {i}");
+                            }
+                            break;
+                        }
+                        if (readInput && hasOutput)
+                        {
+                            throw new InvalidProgramException($"reading input and writing output from computer {i}");
+                        }
+                        if (readInput)
+                        {
+                            long nextInput = -1;
+                            if (sInputs[i].Count > 0)
+                            {
+                                nextInput = sInputs[i][0];
+                                sInputs[i].RemoveAt(0);
+                            }
+                            sComputers[i].SetNextInput(nextInput);
+                            //Console.WriteLine($"Computer {i} Set Next Input {nextInput}");
+                        }
+                        if (hasOutput)
+                        {
+                            long destination = result;
+                            hasOutput = false;
+                            long X = sComputers[i].GetNextOutput(ref halt, ref hasOutput);
+                            if (halt)
+                            {
+                                throw new InvalidProgramException($"halt when reading X value from computer {i}");
+                            }
+                            hasOutput = false;
+                            long Y = sComputers[i].GetNextOutput(ref halt, ref hasOutput);
+                            if (halt)
+                            {
+                                throw new InvalidProgramException($"halt when reading Y value from computer {i}");
+                            }
+                            if (destination == 255)
+                            {
+                                foundAnswer = true;
+                                result1 = Y;
+                                break;
+                            }
+                            if ((destination < 0) || (destination >= COMPUTER_COUNT))
+                            {
+                                throw new InvalidDataException($"Invalid destination {destination} from computer {i}");
+                            }
+                            sInputs[destination].Add(X);
+                            sInputs[destination].Add(Y);
+                            //Console.WriteLine($"Message from {i} to {destination} {X} {Y}");
+                        }
+                        if (foundAnswer)
+                        {
+                            break;
+                        }
+                    }
+                }
+                Console.WriteLine($"Day23: Result1 {result1}");
+                long expected = 23626;
+                if (result1 != expected)
+                {
+                    throw new InvalidDataException($"Part1 result is broken {result1} != {expected}");
+                }
+            }
+            else
+            {
+            }
         }
 
-        private string[] ReadProgram(string inputFile)
+        private string ReadProgram(string inputFile)
         {
-            var elements = File.ReadAllLines(inputFile);
-            return elements;
+            var program = File.ReadAllText(inputFile);
+            return program;
         }
 
         public static void Run()

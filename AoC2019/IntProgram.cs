@@ -71,156 +71,181 @@ struct IntProgram
 
     public long RunProgram(ref bool halt, ref bool hasOutput)
     {
-        long instruction = mData[mPC];
+        bool readInput = false;
         long result = -666;
-        while (instruction != 99)
+        while (!halt)
         {
-            if (mPC >= mData.Length)
-            {
-                throw new InvalidDataException($"Invalid pc:{mPC}");
-            }
-            long opcode = instruction % 100;
-            long param1Mode = (instruction / 100) % 10;
-            long param2Mode = (instruction / 1000) % 10;
-            long param3Mode = (instruction / 10000) % 10;
+            result = SingleStep(ref halt, ref hasOutput, ref readInput);
+        };
+        return result;
+    }
 
-            if ((param1Mode != 0) && (param1Mode != 1) && (param1Mode != 2))
+    public long GetNextOutput(ref bool halt, ref bool hasOutput)
+    {
+        bool readInput = false;
+        long result = -666;
+        while (!halt)
+        {
+            result = SingleStep(ref halt, ref hasOutput, ref readInput);
+            if (hasOutput)
             {
-                throw new ArgumentOutOfRangeException(nameof(param1Mode), $"Invalid param1Mode:{param1Mode}");
+                return result;
             }
-            if ((param2Mode != 0) && (param2Mode != 1) && (param2Mode != 2))
-            {
-                throw new ArgumentOutOfRangeException(nameof(param2Mode), $"Invalid param1Mode:{param2Mode}");
-            }
-            if ((param3Mode != 0) && (param3Mode != 2))
-            {
-                throw new ArgumentOutOfRangeException(nameof(param3Mode), $"Invalid param3Mode:{param3Mode}");
-            }
-
-            long param1Index;
-            long param2Index;
-            long param3Index;
-            long param1;
-            long param2;
-            long param3;
-            long output;
-            switch (opcode)
-            {
-                case 1:
-                    param1Index = mData[mPC + 1];
-                    param2Index = mData[mPC + 2];
-                    param3Index = mData[mPC + 3];
-                    param1 = GetParam(param1Mode, param1Index);
-                    param2 = GetParam(param2Mode, param2Index);
-                    param3 = GetOutputIndex(param3Mode, param3Index);
-                    output = param1 + param2;
-                    MakeDataBigEnough(param3);
-                    mData[param3] = output;
-                    mPC += 4;
-                    break;
-                case 2:
-                    param1Index = mData[mPC + 1];
-                    param2Index = mData[mPC + 2];
-                    param3Index = mData[mPC + 3];
-                    param1 = GetParam(param1Mode, param1Index);
-                    param2 = GetParam(param2Mode, param2Index);
-                    param3 = GetOutputIndex(param3Mode, param3Index);
-                    output = param1 * param2;
-                    MakeDataBigEnough(param3);
-                    mData[param3] = output;
-                    mPC += 4;
-                    break;
-                case 3:
-                    param1Index = mData[mPC + 1];
-                    long index = GetOutputIndex(param1Mode, param1Index);
-                    MakeDataBigEnough(index);
-                    long input = mUseNextInput ? mNextInput : mInputData[mInputIndex++];
-                    mData[index] = input;
-                    //Console.WriteLine($"Input: {index} {input}");
-                    mPC += 2;
-                    break;
-                case 4:
-                    param1Index = mData[mPC + 1];
-                    param1 = GetParam(param1Mode, param1Index);
-                    result = param1;
-                    hasOutput = true;
-                    mPC += 2;
-                    return result;
-                case 5:
-                    param1Index = mData[mPC + 1];
-                    param2Index = mData[mPC + 2];
-                    param1 = GetParam(param1Mode, param1Index);
-                    param2 = GetParam(param2Mode, param2Index);
-                    if (param1 != 0)
-                    {
-                        mPC = param2;
-                    }
-                    else
-                    {
-                        mPC += 3;
-                    }
-
-                    break;
-                case 6:
-                    param1Index = mData[mPC + 1];
-                    param2Index = mData[mPC + 2];
-                    param1 = GetParam(param1Mode, param1Index);
-                    param2 = GetParam(param2Mode, param2Index);
-                    if (param1 == 0)
-                    {
-                        mPC = param2;
-                    }
-                    else
-                    {
-                        mPC += 3;
-                    }
-
-                    break;
-                case 7:
-                    param1Index = mData[mPC + 1];
-                    param2Index = mData[mPC + 2];
-                    param3Index = mData[mPC + 3];
-                    param1 = GetParam(param1Mode, param1Index);
-                    param2 = GetParam(param2Mode, param2Index);
-                    param3 = GetOutputIndex(param3Mode, param3Index);
-                    output = 0;
-                    if (param1 < param2)
-                    {
-                        output = 1;
-                    }
-                    MakeDataBigEnough(param3);
-                    mData[param3] = output;
-                    mPC += 4;
-                    break;
-                case 8:
-                    param1Index = mData[mPC + 1];
-                    param2Index = mData[mPC + 2];
-                    param3Index = mData[mPC + 3];
-                    param1 = GetParam(param1Mode, param1Index);
-                    param2 = GetParam(param2Mode, param2Index);
-                    param3 = GetOutputIndex(param3Mode, param3Index);
-                    output = 0;
-                    if (param1 == param2)
-                    {
-                        output = 1;
-                    }
-                    MakeDataBigEnough(param3);
-                    mData[param3] = output;
-                    mPC += 4;
-                    break;
-                case 9:
-                    param1Index = mData[mPC + 1];
-                    param1 = GetParam(param1Mode, param1Index);
-                    mRelativeBase += param1;
-                    mPC += 2;
-                    break;
-                default:
-                    throw new InvalidDataException($"Unknown opcode:{opcode}");
-            }
-
-            instruction = mData[mPC];
         }
-        halt = true;
+        return result;
+    }
+
+    public long SingleStep(ref bool halt, ref bool hasOutput, ref bool readInput)
+    {
+        long result = -666;
+        if (mPC >= mData.Length)
+        {
+            throw new InvalidDataException($"Invalid pc:{mPC}");
+        }
+        hasOutput = false;
+        var instruction = mData[mPC];
+        long opcode = instruction % 100;
+        long param1Mode = (instruction / 100) % 10;
+        long param2Mode = (instruction / 1000) % 10;
+        long param3Mode = (instruction / 10000) % 10;
+
+        if ((param1Mode != 0) && (param1Mode != 1) && (param1Mode != 2))
+        {
+            throw new ArgumentOutOfRangeException(nameof(param1Mode), $"Invalid param1Mode:{param1Mode}");
+        }
+        if ((param2Mode != 0) && (param2Mode != 1) && (param2Mode != 2))
+        {
+            throw new ArgumentOutOfRangeException(nameof(param2Mode), $"Invalid param1Mode:{param2Mode}");
+        }
+        if ((param3Mode != 0) && (param3Mode != 2))
+        {
+            throw new ArgumentOutOfRangeException(nameof(param3Mode), $"Invalid param3Mode:{param3Mode}");
+        }
+
+        long param1Index;
+        long param2Index;
+        long param3Index;
+        long param1;
+        long param2;
+        long param3;
+        long output;
+        switch (opcode)
+        {
+            case 1:
+                param1Index = mData[mPC + 1];
+                param2Index = mData[mPC + 2];
+                param3Index = mData[mPC + 3];
+                param1 = GetParam(param1Mode, param1Index);
+                param2 = GetParam(param2Mode, param2Index);
+                param3 = GetOutputIndex(param3Mode, param3Index);
+                output = param1 + param2;
+                MakeDataBigEnough(param3);
+                mData[param3] = output;
+                mPC += 4;
+                break;
+            case 2:
+                param1Index = mData[mPC + 1];
+                param2Index = mData[mPC + 2];
+                param3Index = mData[mPC + 3];
+                param1 = GetParam(param1Mode, param1Index);
+                param2 = GetParam(param2Mode, param2Index);
+                param3 = GetOutputIndex(param3Mode, param3Index);
+                output = param1 * param2;
+                MakeDataBigEnough(param3);
+                mData[param3] = output;
+                mPC += 4;
+                break;
+            case 3:
+                param1Index = mData[mPC + 1];
+                long index = GetOutputIndex(param1Mode, param1Index);
+                MakeDataBigEnough(index);
+                long input = mUseNextInput ? mNextInput : mInputData[mInputIndex++];
+                mData[index] = input;
+                readInput = true;
+                mPC += 2;
+                break;
+            case 4:
+                param1Index = mData[mPC + 1];
+                param1 = GetParam(param1Mode, param1Index);
+                result = param1;
+                hasOutput = true;
+                mPC += 2;
+                return result;
+            case 5:
+                param1Index = mData[mPC + 1];
+                param2Index = mData[mPC + 2];
+                param1 = GetParam(param1Mode, param1Index);
+                param2 = GetParam(param2Mode, param2Index);
+                if (param1 != 0)
+                {
+                    mPC = param2;
+                }
+                else
+                {
+                    mPC += 3;
+                }
+
+                break;
+            case 6:
+                param1Index = mData[mPC + 1];
+                param2Index = mData[mPC + 2];
+                param1 = GetParam(param1Mode, param1Index);
+                param2 = GetParam(param2Mode, param2Index);
+                if (param1 == 0)
+                {
+                    mPC = param2;
+                }
+                else
+                {
+                    mPC += 3;
+                }
+
+                break;
+            case 7:
+                param1Index = mData[mPC + 1];
+                param2Index = mData[mPC + 2];
+                param3Index = mData[mPC + 3];
+                param1 = GetParam(param1Mode, param1Index);
+                param2 = GetParam(param2Mode, param2Index);
+                param3 = GetOutputIndex(param3Mode, param3Index);
+                output = 0;
+                if (param1 < param2)
+                {
+                    output = 1;
+                }
+                MakeDataBigEnough(param3);
+                mData[param3] = output;
+                mPC += 4;
+                break;
+            case 8:
+                param1Index = mData[mPC + 1];
+                param2Index = mData[mPC + 2];
+                param3Index = mData[mPC + 3];
+                param1 = GetParam(param1Mode, param1Index);
+                param2 = GetParam(param2Mode, param2Index);
+                param3 = GetOutputIndex(param3Mode, param3Index);
+                output = 0;
+                if (param1 == param2)
+                {
+                    output = 1;
+                }
+                MakeDataBigEnough(param3);
+                mData[param3] = output;
+                mPC += 4;
+                break;
+            case 9:
+                param1Index = mData[mPC + 1];
+                param1 = GetParam(param1Mode, param1Index);
+                mRelativeBase += param1;
+                mPC += 2;
+                break;
+            case 99:
+                hasOutput = false;
+                halt = true;
+                return result;
+            default:
+                throw new InvalidDataException($"Unknown opcode:{opcode}");
+        }
         return result;
     }
 
