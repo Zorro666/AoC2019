@@ -95,7 +95,7 @@ namespace Day18
             new TestCaseData(mapA, 8).SetName("ShorttestPath A 8"),
             new TestCaseData(mapB, 86).SetName("ShorttestPath B 86"),
             new TestCaseData(mapC, 132).SetName("ShorttestPath C 132"),
-            new TestCaseData(mapD, 136).SetName("ShorttestPath D 136").Ignore("Takes 10mins+ to run"),
+            new TestCaseData(mapD, 136).SetName("ShorttestPath D 136").Explicit("Takes 10mins+ to run"),
             new TestCaseData(mapE, 81).SetName("ShorttestPath E 81")
         };
 
