@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 
 /*
@@ -68,15 +69,206 @@ namespace Day24
 {
     class Program
     {
+        static readonly int MAP_WIDTH = 5;
+        static readonly int MAP_HEIGHT = 5;
+        static int[,] sCells;
+        static int[,] sCellsNext;
+        static HashSet<int> sBioDiversities;
+
         private Program(string inputFile, bool part1)
         {
-            var elements = ReadProgram(inputFile);
+            var lines = ReadFile(inputFile);
+            ParseInput(lines);
+
+            if (part1)
+            {
+                int result1 = -666;
+                for (int i = 0; i < 100000; ++i)
+                {
+                    Simulate(1);
+                    int bioDiversity = BioDiversityRating();
+                    if (sBioDiversities.Contains(bioDiversity))
+                    {
+                        result1 = bioDiversity;
+                        break;
+                    }
+                    else
+                    {
+                        sBioDiversities.Add(bioDiversity);
+                    }
+                    if (result1 != -666)
+                    {
+                        break;
+                    }
+                }
+                Console.WriteLine($"Day24: Result1 {result1}");
+                int expected = 17863741;
+                if (result1 != expected)
+                {
+                    throw new InvalidDataException($"Part1 is broken {result1} != {expected}");
+                }
+            }
         }
 
-        private string[] ReadProgram(string inputFile)
+        private string[] ReadFile(string inputFile)
         {
-            var elements = File.ReadAllLines(inputFile);
-            return elements;
+            var lines = File.ReadAllLines(inputFile);
+            return lines;
+        }
+
+        public static void ParseInput(string[] lines)
+        {
+            sCells = new int[MAP_WIDTH, MAP_HEIGHT];
+            sCellsNext = new int[MAP_WIDTH, MAP_HEIGHT];
+            sBioDiversities = new HashSet<int>(100000);
+            for (int y = 0; y < MAP_HEIGHT; ++y)
+            {
+                for (int x = 0; x < MAP_WIDTH; ++x)
+                {
+                    sCells[x, y] = 0;
+                    sCellsNext[x, y] = 0;
+                }
+            }
+            if (lines.Length != MAP_HEIGHT)
+            {
+                throw new InvalidDataException($"Input data wrong height {lines.Length} != {MAP_HEIGHT}");
+            }
+            for (int y = 0; y < MAP_HEIGHT; ++y)
+            {
+                var line = lines[y];
+                if (line.Length != MAP_HEIGHT)
+                {
+                    throw new InvalidDataException($"Input Line {y} data wrong width {line.Length} != {MAP_WIDTH}");
+                }
+                for (int x = 0; x < MAP_WIDTH; ++x)
+                {
+                    var cell = line[x];
+                    if (cell == '.')
+                    {
+                        sCells[x, y] = 0;
+                    }
+                    else if (cell == '#')
+                    {
+                        sCells[x, y] = 1;
+                    }
+                    else
+                    {
+                        throw new InvalidDataException($"Invalid input {x},{y} '{cell}'");
+                    }
+                }
+            }
+        }
+
+        public static void Simulate(int numIterations)
+        {
+            int[,] numAdjacent = new int[MAP_WIDTH, MAP_HEIGHT];
+            for (int i = 0; i < numIterations; ++i)
+            {
+                for (int y = 0; y < MAP_HEIGHT; ++y)
+                {
+                    for (int x = 0; x < MAP_WIDTH; ++x)
+                    {
+                        numAdjacent[x, y] = 0;
+                    }
+                }
+
+                for (int y = 0; y < MAP_HEIGHT; ++y)
+                {
+                    for (int x = 0; x < MAP_WIDTH; ++x)
+                    {
+                        int nonEmptyCount = 0;
+                        nonEmptyCount += GetCell(x + 0, y - 1);
+                        nonEmptyCount += GetCell(x - 1, y + 0);
+                        nonEmptyCount += GetCell(x + 1, y + 0);
+                        nonEmptyCount += GetCell(x + 0, y + 1);
+                        numAdjacent[x, y] = nonEmptyCount;
+                    }
+                }
+
+                for (int y = 0; y < MAP_HEIGHT; ++y)
+                {
+                    for (int x = 0; x < MAP_WIDTH; ++x)
+                    {
+                        var adjacentCount = numAdjacent[x, y];
+                        int oldValue = sCells[x, y];
+                        int newValue = oldValue;
+                        if ((oldValue == 0) && ((adjacentCount == 1) || (adjacentCount == 2)))
+                        {
+                            newValue = 1;
+                        }
+                        else if ((oldValue == 1) && (adjacentCount != 1))
+                        {
+                            newValue = 0;
+                        }
+                        sCellsNext[x, y] = newValue;
+                    }
+                }
+                for (int y = 0; y < MAP_HEIGHT; ++y)
+                {
+                    for (int x = 0; x < MAP_WIDTH; ++x)
+                    {
+                        sCells[x, y] = sCellsNext[x, y];
+                    }
+                }
+            }
+        }
+
+        private static int GetCell(int x, int y)
+        {
+            if ((x < 0) || (x >= MAP_WIDTH))
+            {
+                return 0;
+            }
+            if ((y < 0) || (y >= MAP_HEIGHT))
+            {
+                return 0;
+            }
+            return sCells[x, y];
+        }
+
+        public static int BioDiversityRating()
+        {
+            int bioDiversity = 0;
+            int cellValue = 1;
+            for (int y = 0; y < MAP_HEIGHT; ++y)
+            {
+                for (int x = 0; x < MAP_WIDTH; ++x)
+                {
+                    if (sCells[x, y] == 1)
+                    {
+                        bioDiversity += cellValue;
+                    }
+                    cellValue *= 2;
+                }
+            }
+            return bioDiversity;
+        }
+
+        public static string[] CurrentState()
+        {
+            var result = new string[MAP_HEIGHT];
+            for (int y = 0; y < MAP_HEIGHT; ++y)
+            {
+                string line = "";
+                for (int x = 0; x < MAP_WIDTH; ++x)
+                {
+                    var cell = sCells[x, y];
+                    if (cell == 0)
+                    {
+                        line += '.';
+                    }
+                    else if (cell == 1)
+                    {
+                        line += '#';
+                    }
+                    else
+                    {
+                        throw new InvalidDataException($"Invalid cell {x},{y} '{cell}'");
+                    }
+                }
+                result[y] = line;
+            }
+            return result;
         }
 
         public static void Run()
