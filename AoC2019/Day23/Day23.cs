@@ -59,78 +59,7 @@ namespace Day23
 
             if (part1)
             {
-                bool foundAnswer = false;
-                long result1 = -123;
-                while (!foundAnswer)
-                {
-                    for (var i = 0; i < COMPUTER_COUNT; ++i)
-                    {
-                        bool halt = false;
-                        bool readInput = false;
-                        bool hasOutput = false;
-                        long result = sComputers[i].SingleStep(ref halt, ref hasOutput, ref readInput);
-                        if (halt)
-                        {
-                            if (readInput)
-                            {
-                                throw new InvalidProgramException($"halt when sending input to computer {i}");
-                            }
-                            if (hasOutput)
-                            {
-                                throw new InvalidProgramException($"halt when reading output from computer {i}");
-                            }
-                            break;
-                        }
-                        if (readInput && hasOutput)
-                        {
-                            throw new InvalidProgramException($"reading input and writing output from computer {i}");
-                        }
-                        if (readInput)
-                        {
-                            long nextInput = -1;
-                            if (sInputs[i].Count > 0)
-                            {
-                                nextInput = sInputs[i][0];
-                                sInputs[i].RemoveAt(0);
-                            }
-                            sComputers[i].SetNextInput(nextInput);
-                            //Console.WriteLine($"Computer {i} Set Next Input {nextInput}");
-                        }
-                        if (hasOutput)
-                        {
-                            long destination = result;
-                            hasOutput = false;
-                            long X = sComputers[i].GetNextOutput(ref halt, ref hasOutput);
-                            if (halt)
-                            {
-                                throw new InvalidProgramException($"halt when reading X value from computer {i}");
-                            }
-                            hasOutput = false;
-                            long Y = sComputers[i].GetNextOutput(ref halt, ref hasOutput);
-                            if (halt)
-                            {
-                                throw new InvalidProgramException($"halt when reading Y value from computer {i}");
-                            }
-                            if (destination == 255)
-                            {
-                                foundAnswer = true;
-                                result1 = Y;
-                                break;
-                            }
-                            if ((destination < 0) || (destination >= COMPUTER_COUNT))
-                            {
-                                throw new InvalidDataException($"Invalid destination {destination} from computer {i}");
-                            }
-                            sInputs[destination].Add(X);
-                            sInputs[destination].Add(Y);
-                            //Console.WriteLine($"Message from {i} to {destination} {X} {Y}");
-                        }
-                        if (foundAnswer)
-                        {
-                            break;
-                        }
-                    }
-                }
+                long result1 = RunSimulation(part1);
                 Console.WriteLine($"Day23: Result1 {result1}");
                 long expected = 23626;
                 if (result1 != expected)
@@ -140,6 +69,126 @@ namespace Day23
             }
             else
             {
+                long result1 = RunSimulation(part1);
+                Console.WriteLine($"Day23: Result2 {result1}");
+                long expected = 19019;
+                if (result1 != expected)
+                {
+                    throw new InvalidDataException($"Part1 result is broken {result1} != {expected}");
+                }
+            }
+        }
+
+        long RunSimulation(bool part1)
+        {
+            long natXValue = long.MinValue;
+            long natYValue = long.MinValue;
+            long lastNATYValue = long.MinValue;
+            long cyclesSinceOutput = 0;
+            while (true)
+            {
+                bool areInputsEmpty = true;
+                for (var i = 0; i < COMPUTER_COUNT; ++i)
+                {
+                    if (sInputs[i].Count != 0)
+                    {
+                        areInputsEmpty = false;
+                    }
+                }
+                bool hadOutput = false;
+                for (var i = 0; i < COMPUTER_COUNT; ++i)
+                {
+                    bool halt = false;
+                    bool readInput = false;
+                    bool hasOutput = false;
+                    long computerOutput = sComputers[i].SingleStep(ref halt, ref hasOutput, ref readInput);
+                    if (halt)
+                    {
+                        if (readInput)
+                        {
+                            throw new InvalidProgramException($"halt when sending input to computer {i}");
+                        }
+                        if (hasOutput)
+                        {
+                            throw new InvalidProgramException($"halt when reading output from computer {i}");
+                        }
+                        break;
+                    }
+                    if (readInput && hasOutput)
+                    {
+                        throw new InvalidProgramException($"reading input and writing output from computer {i}");
+                    }
+                    if (readInput)
+                    {
+                        long nextInput = -1;
+                        if (sInputs[i].Count > 0)
+                        {
+                            nextInput = sInputs[i][0];
+                            sInputs[i].RemoveAt(0);
+                        }
+                        sComputers[i].SetNextInput(nextInput);
+                        if ((i == 0) && (nextInput != -1))
+                        {
+                            //Console.WriteLine($"Computer {i} Set Next Input {nextInput}");
+                        }
+                    }
+                    if (hasOutput)
+                    {
+                        hadOutput = true;
+                        long destination = computerOutput;
+                        hasOutput = false;
+                        long X = sComputers[i].GetNextOutput(ref halt, ref hasOutput);
+                        if (halt)
+                        {
+                            throw new InvalidProgramException($"halt when reading X value from computer {i}");
+                        }
+                        hasOutput = false;
+                        long Y = sComputers[i].GetNextOutput(ref halt, ref hasOutput);
+                        if (halt)
+                        {
+                            throw new InvalidProgramException($"halt when reading Y value from computer {i}");
+                        }
+                        if (destination == 255)
+                        {
+                            natXValue = X;
+                            natYValue = Y;
+                        }
+                        else if ((destination < 0) || (destination >= COMPUTER_COUNT))
+                        {
+                            throw new InvalidDataException($"Invalid destination {destination} from computer {i}");
+                        }
+                        else
+                        {
+                            sInputs[destination].Add(X);
+                            sInputs[destination].Add(Y);
+                        }
+                        //Console.WriteLine($"Message from {i} to {destination} {X} {Y}");
+                    }
+                    if (part1 && (natYValue != long.MinValue))
+                    {
+                        return natYValue;
+                    }
+                }
+                if (hadOutput)
+                {
+                    cyclesSinceOutput = 0;
+                }
+                else
+                {
+                    ++cyclesSinceOutput;
+                }
+                if (areInputsEmpty && (cyclesSinceOutput > 10000) && (natXValue != long.MinValue) && (natYValue != long.MinValue))
+                {
+                    //Console.WriteLine($"Nat X:{natXValue} Y:{natYValue} LastY:{lastNATYValue}");
+                    sInputs[0].Add(natXValue);
+                    sInputs[0].Add(natYValue);
+                    if (lastNATYValue == natYValue)
+                    {
+                        return natYValue;
+                    }
+                    lastNATYValue = natYValue;
+                    cyclesSinceOutput = 0;
+                }
             }
         }
 
