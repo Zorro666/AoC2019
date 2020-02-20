@@ -28,23 +28,51 @@ Santa's ship is a Reindeer-class starship; these ships use pressure-sensitive fl
 
 Look around the ship and see if you can find the password for the main airlock.
 
+Your puzzle answer was 4362.
+
+--- Part Two ---
+
+As you move through the main airlock, the air inside the ship is already heating up to reasonable levels. Santa explains that he didn't notice you coming because he was just taking a quick nap. The ship wasn't frozen; he just had the thermostat set to "North Pole".
+
+You make your way over to the navigation console. It beeps. "Status: Stranded. Please supply measurements from 49 stars to recalibrate."
+
+"49 stars? But the Elves told me you needed fifty--"
+
+Santa just smiles and nods his head toward the window. There, in the distance, you can see the center of the Solar System: the Sun!
+
+The navigation console beeps again.
+
 */
 
 namespace Day25
 {
     class Program
     {
+        struct Node
+        {
+            public int type;
+            public string name;
+            public string description;
+        };
+
         static IntProgram sComputer;
         static string[] sLastReplies;
         static bool[] sValidMoves;
         static string[] sItemsToPickup;
-        static readonly int MAX_MAP_SIZE = 2048;
-        static readonly int[,] sMap = new int[MAX_MAP_SIZE, MAX_MAP_SIZE];
-        static readonly bool[,] sMapExplored = new bool[MAX_MAP_SIZE, MAX_MAP_SIZE];
-        static int sRobotX;
-        static int sRobotY;
+        static List<string> sInventory = new List<string>(128);
+        static readonly int MAX_NUM_ROOMS = 1024;
+        static readonly bool[] sMapExplored = new bool[MAX_NUM_ROOMS];
+        static int sRobotRoom = -1;
+        static int sLastRoom = -1;
+        static int sNextFreeRoom = 0;
+        static int sSecurityRoomNodeIndex = -1;
         string sRoomName;
         string sRoomDescription;
+        static Direction sMoveDirection = Direction.Unknown;
+        static readonly Node[] sNodes = new Node[MAX_NUM_ROOMS];
+        static readonly List<int>[] sLinks = new List<int>[MAX_NUM_ROOMS];
+        static readonly Dictionary<string, int> sRoomNames = new Dictionary<string, int>(MAX_NUM_ROOMS);
+        static readonly Dictionary<(int from, int to), Direction> sRoutes = new Dictionary<(int, int), Direction>(MAX_NUM_ROOMS * MAX_NUM_ROOMS);
 
         static readonly int North = 0;
         static readonly int South = 1;
@@ -54,6 +82,7 @@ namespace Day25
 
         enum Direction
         {
+            Unknown = 0,
             North = 1,
             South = 2,
             West = 3,
@@ -65,31 +94,54 @@ namespace Day25
             sComputer = new IntProgram();
             sComputer.LoadProgram(inputFile);
             sValidMoves = new bool[4];
-            InitMap();
+            InitRooms();
             ResetValidMoves();
 
             if (part1)
             {
-                var result1 = -666;
-                var expected = -123;
                 WaitToEnterCommand();
+                UpdateMap();
                 OutputStatus();
-                int posX = sRobotX;
-                int posY = sRobotY;
                 bool halt = false;
                 while (!halt)
                 {
-                    Search(Direction.North, posX, posY);
-                    Search(Direction.South, posX, posY);
-                    Search(Direction.West, posX, posY);
-                    Search(Direction.East, posX, posY);
+                    Search(Direction.North);
+                    Navigate(sRobotRoom, 0);
+                    Search(Direction.South);
+                    Navigate(sRobotRoom, 0);
+                    Search(Direction.West);
+                    Navigate(sRobotRoom, 0);
+                    Search(Direction.East);
                     halt = true;
                 }
-                OutputMap();
+                Inventory();
+                OutputRooms();
+                if (sSecurityRoomNodeIndex == -1)
+                {
+                    throw new InvalidDataException($"Failed to find the security room");
+                }
+                var startIndex = sRobotRoom;
+                var endIndex = sSecurityRoomNodeIndex;
+                var routeToSecurity = Navigate(startIndex, endIndex);
+                Console.WriteLine($"");
+                Console.Write($"Route {startIndex} ");
+                Console.WriteLine($" -> {endIndex}");
+                var currentRoom = startIndex;
+                foreach (var node in routeToSecurity)
+                {
+                    var direction = sRoutes[(currentRoom, node)];
+                    var oldRobotRoom = sRobotRoom;
+                    MoveRobot(direction);
+                    Console.WriteLine($"{node} {direction} {oldRobotRoom} -> {sRobotRoom}");
+                    currentRoom = node;
+                }
+                var result1 = FindDoorCombination();
+                var expected = 4362;
+                Console.WriteLine($"");
                 Console.WriteLine($"Day25: Part1 {result1}");
                 if (result1 != expected)
                 {
-                    //throw new InvalidDataException($"Part1 is broken {result1} != {expected}");
+                    throw new InvalidDataException($"Part1 is broken {result1} != {expected}");
                 }
             }
             else
@@ -104,23 +156,21 @@ namespace Day25
             }
         }
 
-        void InitMap()
+        void InitRooms()
         {
-            for (var y = 0; y < MAX_MAP_SIZE; ++y)
+            sLastRoom = -1;
+            sNextFreeRoom = 0;
+            sRobotRoom = 0;
+            for (var r = 0; r < sNodes.Length; ++r)
             {
-                for (var x = 0; x < MAX_MAP_SIZE; ++x)
-                {
-                    sMap[x, y] = -1;
-                }
+                sNodes[r].type = -1;
             }
-            sRobotX = MAX_MAP_SIZE / 2;
-            sRobotY = MAX_MAP_SIZE / 2;
         }
 
         void OutputStatus()
         {
             Console.WriteLine($"");
-            Console.WriteLine($"Robot {sRobotX}, {sRobotY}");
+            Console.WriteLine($"Robot {sRobotRoom}");
             Console.WriteLine($"Room: '{sRoomName}' '{sRoomDescription}'");
             Console.Write($"Exits:");
             for (var i = 0; i < 4; ++i)
@@ -144,51 +194,17 @@ namespace Day25
             Console.WriteLine($"");
         }
 
-        void OutputMap()
+        void OutputRooms()
         {
-            var minX = int.MaxValue;
-            var maxX = int.MinValue;
-            var minY = int.MaxValue;
-            var maxY = int.MinValue;
-            for (var y = 0; y < MAX_MAP_SIZE; ++y)
-            {
-                for (var x = 0; x < MAX_MAP_SIZE; ++x)
-                {
-                    if (sMap[x, y] != -1)
-                    {
-                        minX = Math.Min(minX, x);
-                        maxX = Math.Max(maxX, x);
-                        minY = Math.Min(minY, y);
-                        maxY = Math.Max(maxY, y);
-                    }
-                }
-            }
             Console.WriteLine("----------------------------------");
-            for (var y = minY; y <= maxY; ++y)
+            int r = 0;
+            foreach (var room in sNodes)
             {
-                string line = "";
-                for (var x = minX; x <= maxX; ++x)
+                if (room.type != -1)
                 {
-                    char c = ' ';
-                    if (sMap[x, y] == 0)
-                    {
-                        c = '.';
-                    }
-                    else if (sMap[x, y] == 1)
-                    {
-                        c = '#';
-                    }
-                    else if (sMap[x, y] == 2)
-                    {
-                        c = 'S';
-                    }
-                    if ((x == sRobotX) && (y == sRobotY))
-                    {
-                        c = '*';
-                    }
-                    line += c;
+                    Console.WriteLine($"Room[{r}] '{room.name}' Desc:'{room.description}' Type:{room.type}");
                 }
-                Console.WriteLine(line);
+                ++r;
             }
             Console.WriteLine("----------------------------------");
         }
@@ -203,44 +219,46 @@ namespace Day25
 
         void MoveNorth()
         {
+            sMoveDirection = Direction.North;
             Console.WriteLine($"North from {sRoomName}");
-            if (sRoomName == "Engineering")
-            {
-                return;
-            }
             if (EnterCommand("north"))
             {
-                sRobotY -= 1;
                 UpdateMap();
             }
         }
 
         void MoveSouth()
         {
+            sMoveDirection = Direction.South;
             Console.WriteLine($"South from {sRoomName}");
             if (EnterCommand("south"))
             {
-                sRobotY += 1;
                 UpdateMap();
             }
         }
 
         void MoveWest()
         {
+            sMoveDirection = Direction.West;
             Console.WriteLine($"West from {sRoomName}");
             if (EnterCommand("west"))
             {
-                sRobotX -= 1;
                 UpdateMap();
             }
         }
 
         void MoveEast()
         {
+            sMoveDirection = Direction.East;
+            if (sRoomName == "Passages")
+            {
+                Console.WriteLine($"Not going East from {sRoomName}");
+                return;
+            }
+
             Console.WriteLine($"East from {sRoomName}");
             if (EnterCommand("east"))
             {
-                sRobotX += 1;
                 UpdateMap();
             }
         }
@@ -248,6 +266,23 @@ namespace Day25
         void Inventory()
         {
             EnterCommand("inv");
+            bool getItems = false;
+            foreach (var line in sLastReplies)
+            {
+                if (line.StartsWith("Items in your inventory:"))
+                {
+                    getItems = true;
+                    sInventory.Clear();
+                }
+                else if (getItems)
+                {
+                    if (line.StartsWith("- "))
+                    {
+                        var item = line.Split("- ")[1];
+                        sInventory.Add(item);
+                    }
+                }
+            }
         }
 
         bool WaitToEnterCommand()
@@ -274,61 +309,66 @@ namespace Day25
                 }
             }
             sLastReplies = replies.ToArray();
+            //OutputLastReplies();
             return ParseReply();
-        }
-
-        void UpdateMapCell(int x, int y, int value)
-        {
-            sMap[x, y] = value;
         }
 
         void UpdateMap()
         {
-            if ((sRobotX <= 0) || (sRobotX >= MAX_MAP_SIZE))
+            if (sRoomNames.ContainsKey(sRoomName))
             {
-                throw new InvalidDataException($"Invalid RobotX {sRobotX} {0} - {MAX_MAP_SIZE}");
+                sRobotRoom = sRoomNames[sRoomName];
+            }
+            else
+            {
+                sRobotRoom = sNextFreeRoom;
+                sRoomNames[sRoomName] = sRobotRoom;
+                ++sNextFreeRoom;
             }
 
-            if ((sRobotY <= 0) || (sRobotY >= MAX_MAP_SIZE))
+            if (sRobotRoom < 0)
             {
-                throw new InvalidDataException($"Invalid RobotY {sRobotY} {0} - {MAX_MAP_SIZE}");
+                throw new InvalidDataException($"Invalid RobotRoom {sRobotRoom}");
             }
 
-            if (sValidMoves[North])
-            {
-                UpdateMapCell(sRobotX, sRobotY - 1, 0);
-            }
-            else
-            {
-                UpdateMapCell(sRobotX, sRobotY - 1, 1);
-            }
-            if (sValidMoves[South])
-            {
-                sMap[sRobotX, sRobotY + 1] = 0;
-            }
-            else
-            {
-                sMap[sRobotX, sRobotY + 1] = 1;
-            }
-            if (sValidMoves[West])
-            {
-                sMap[sRobotX - 1, sRobotY] = 0;
-            }
-            else
-            {
-                sMap[sRobotX - 1, sRobotY] = 1;
-            }
-            if (sValidMoves[East])
-            {
-                sMap[sRobotX + 1, sRobotY] = 0;
-            }
-            else
-            {
-                sMap[sRobotX + 1, sRobotY] = 1;
-            }
+            var room = sRobotRoom;
+            var type = 0;
+
             if (sRoomName == "Security Checkpoint")
             {
-                sMap[sRobotX, sRobotY] = 2;
+                sSecurityRoomNodeIndex = room;
+                type = 2;
+            }
+            sNodes[room].type = type;
+            sNodes[room].name = sRoomName;
+            sNodes[room].description = sRoomDescription;
+
+            if (sLinks[room] == null)
+            {
+                sLinks[room] = new List<int>();
+                sLinks[room].Clear();
+            }
+            if ((sLastRoom != -1) && (sLastRoom != room))
+            {
+                sLinks[room].Add(sLastRoom);
+                sLinks[sLastRoom].Add(room);
+            }
+            if (sLastRoom != room)
+            {
+                var route = (sLastRoom, room);
+                if (!sRoutes.TryGetValue(route, out Direction existingDirection))
+                {
+                    sRoutes[(sLastRoom, room)] = sMoveDirection;
+                }
+                else
+                {
+                    if (existingDirection != sMoveDirection)
+                    {
+                        throw new InvalidDataException($"existingDirection {existingDirection} != sMoveDirection {sMoveDirection}");
+                    }
+                }
+                sLastRoom = room;
+                sMoveDirection = Direction.Unknown;
             }
         }
 
@@ -364,10 +404,7 @@ namespace Day25
             */
             bool parseDirections = false;
             bool parseItems = false;
-            sItemsToPickup = null;
             List<string> itemsToCollect = new List<string>(10);
-            //sRoomName = null;
-            //sRoomDescription = null;
 
             bool foundRoomLine = false;
             bool foundDescriptionLine = false;
@@ -382,27 +419,32 @@ namespace Day25
                 }
                 if (line == "You can't go that way.")
                 {
-                    OutputLastReplies();
+                    //OutputLastReplies();
+                    Console.WriteLine(line);
                     return false;
                 }
                 if (line == "A loud, robotic voice says \"Alert! Droids on this ship are heavier than the detected value!\" and you are ejected back to the checkpoint.")
                 {
-                    OutputLastReplies();
+                    Console.WriteLine(line);
+                    //OutputLastReplies();
                     return false;
                 }
                 if (line == "A loud, robotic voice says \"Alert! Droids on this ship are lighter than the detected value!\" and you are ejected back to the checkpoint.")
                 {
-                    OutputLastReplies();
+                    Console.WriteLine(line);
+                    //OutputLastReplies();
                     return false;
                 }
                 if (line.EndsWith("and you are ejected back to the checkpoint."))
                 {
-                    OutputLastReplies();
+                    Console.WriteLine(line);
+                    //OutputLastReplies();
                     return false;
                 }
                 if (line.StartsWith("You take the "))
                 {
-                    OutputLastReplies();
+                    Console.WriteLine(line);
+                    //OutputLastReplies();
                     return true;
                 }
                 if (line.StartsWith("Items in your inventory:"))
@@ -411,6 +453,11 @@ namespace Day25
                     return true;
                 }
                 if (line == "You aren't carrying any items.")
+                {
+                    OutputLastReplies();
+                    return true;
+                }
+                if (line.StartsWith("You drop the "))
                 {
                     OutputLastReplies();
                     return true;
@@ -500,9 +547,17 @@ namespace Day25
                         throw new InvalidDataException($"Failed to parse line '{line}'");
                     }
                 }
-                if (line == "Command?")
+                else
                 {
-                    break;
+                    if (line == "Command?")
+                    {
+                        break;
+                    }
+                    else
+                    {
+                        OutputLastReplies();
+                        throw new InvalidDataException($"Failed to parse line '{line}'");
+                    }
                 }
             }
 
@@ -518,7 +573,10 @@ namespace Day25
                 throw new InvalidDataException("Failed to parse Room Description");
             }
 
-            sItemsToPickup = itemsToCollect.ToArray();
+            if (foundItemsLine)
+            {
+                sItemsToPickup = itemsToCollect.ToArray();
+            }
             return true;
         }
 
@@ -539,63 +597,64 @@ namespace Day25
         {
             if (sItemsToPickup == null)
             {
+                Inventory();
                 return;
             }
             foreach (var item in sItemsToPickup)
             {
+                bool pickup = true;
                 if (item == "molten lava")
                 {
-                    continue;
+                    pickup = false;
                 }
-                if (item == "infinite loop")
+                else if (item == "infinite loop")
                 {
-                    continue;
+                    pickup = false;
                 }
-                if (item == "giant electromagnet")
+                else if (item == "giant electromagnet")
                 {
-                    continue;
+                    pickup = false;
+                }
+                else if (item == "escape pod")
+                {
+                    pickup = false;
                 }
                 //food ration : lighter
-                if (item == "food ration")
+                else if (item == "food ration")
                 {
-                    EnterCommand($"take {item}");
-                    continue;
+                    pickup = true;
                 }
                 //cake : heavier
-                if (item == "cake")
+                else if (item == "cake")
                 {
-                    //EnterCommand($"take {item}");
-                    continue;
+                    pickup = true;
                 }
                 //astrolabe : lighter
-                if (item == "astrolabe")
+                else if (item == "astrolabe")
                 {
-                    //EnterCommand($"take {item}");
-                    continue;
+                    pickup = true;
                 }
                 //coin : heavier
-                if (item == "coin")
+                else if (item == "coin")
                 {
-                    //EnterCommand($"take {item}");
-                    continue;
+                    pickup = true;
                 }
-                // "food ration" : lighter
-                // astrolabe : lighter
-                // cake : heavier
-                // coin : heavier
+                else if (item == "hologram")
+                {
+                    pickup = true;
+                }
 
-                // coin + astrolabe : lighter
-                // coin + astrolabe + cake : lighter
-                // coin + astrolabe + cake + "food ration" : lighter
-                //EnterCommand($"take {item}");
+                if (pickup)
+                {
+                    EnterCommand($"take {item}");
+                }
             }
             Inventory();
         }
 
         bool MoveRobot(Direction direction)
         {
-            int currentX = sRobotX;
-            int currentY = sRobotY;
+            int currentRoom = sRobotRoom;
             switch (direction)
             {
                 case Direction.North:
@@ -612,13 +671,13 @@ namespace Day25
                     break;
             }
             PickUpAllItems();
-            OutputMap();
             OutputLastReplies();
             OutputStatus();
-            return ((currentX != sRobotX) || (currentY != sRobotY));
+            sItemsToPickup = null;
+            return (currentRoom != sRobotRoom);
         }
 
-        bool Search(Direction direction, int currentX, int currentY)
+        bool Search(Direction direction)
         {
             switch (direction)
             {
@@ -647,7 +706,6 @@ namespace Day25
                     }
                     break;
             }
-            (int newX, int newY) = GetNewPos(direction, currentX, currentY);
             bool moved = MoveRobot(direction);
             if (!moved)
             {
@@ -655,27 +713,27 @@ namespace Day25
             }
 
             // Valid move and already visited
-            if (sMapExplored[newX, newY])
+            if (sMapExplored[sRobotRoom])
             {
                 MoveBack(direction);
                 return false;
             }
             // Valid moved and unknown map location
-            sMapExplored[newX, newY] = true;
+            sMapExplored[sRobotRoom] = true;
 
-            if (Search(Direction.North, newX, newY))
+            if (Search(Direction.North))
             {
                 return true;
             }
-            if (Search(Direction.South, newX, newY))
+            if (Search(Direction.South))
             {
                 return true;
             }
-            if (Search(Direction.West, newX, newY))
+            if (Search(Direction.West))
             {
                 return true;
             }
-            if (Search(Direction.East, newX, newY))
+            if (Search(Direction.East))
             {
                 return true;
             }
@@ -715,6 +773,101 @@ namespace Day25
                 Direction.East => (posX + 1, posY),
                 _ => throw new InvalidDataException($"Invalid input {direction}"),
             };
+        }
+
+        static List<int> Navigate(int startIndex, int endIndex)
+        {
+            Queue<int> nodesToVisit = new Queue<int>();
+            nodesToVisit.Enqueue(startIndex);
+            List<int> visited = new List<int>(sNodes.Length);
+            Dictionary<int, int> parents = new Dictionary<int, int>(sNodes.Length);
+            while (nodesToVisit.Count > 0)
+            {
+                var nodeIndex = nodesToVisit.Dequeue();
+                if (nodeIndex == endIndex)
+                {
+                    var route = new List<int>(100);
+                    int currentNode = endIndex;
+                    bool foundParent = true;
+                    while (foundParent)
+                    {
+                        route.Insert(0, currentNode);
+                        foundParent = parents.TryGetValue(currentNode, out var parentNode);
+                        if (parentNode == startIndex)
+                        {
+                            break;
+                        }
+                        currentNode = parentNode;
+                    }
+                    return route;
+                }
+
+                foreach (var link in sLinks[nodeIndex])
+                {
+                    if (!visited.Contains(link))
+                    {
+                        visited.Add(link);
+                        nodesToVisit.Enqueue(link);
+                        parents[link] = nodeIndex;
+                    }
+                }
+            };
+            return null;
+        }
+
+        void DropAllItems()
+        {
+            Inventory();
+            foreach (var item in sInventory)
+            {
+                EnterCommand($"drop {item}");
+            }
+            Inventory();
+        }
+
+        int FindDoorCombination()
+        {
+            var numItems = sInventory.Count;
+            var itemNames = sInventory.ToArray();
+
+            if (sRobotRoom != sSecurityRoomNodeIndex)
+            {
+                throw new InvalidDataException($"Robot not at security {sRobotRoom} != {sSecurityRoomNodeIndex}");
+            }
+            var itemCombination = (1 << numItems) - 1;
+            while (itemCombination > 0)
+            {
+                if (sRobotRoom == sSecurityRoomNodeIndex)
+                {
+                    DropAllItems();
+                    for (var i = 0; i < numItems; ++i)
+                    {
+                        if ((itemCombination & (1 << i)) == (1 << i))
+                        {
+                            EnterCommand($"take {itemNames[i]}");
+                        }
+                    }
+                    Inventory();
+                    MoveSouth();
+                }
+                if (sRobotRoom != sSecurityRoomNodeIndex)
+                {
+                    OutputLastReplies();
+                    foreach (var line in sLastReplies)
+                    {
+                        foreach (var word in line.Split(" "))
+                        {
+                            if (int.TryParse(word, out int keyCode))
+                            {
+                                return keyCode;
+                            }
+                        }
+                    }
+                    throw new InvalidDataException($"Failed to find the passcode");
+                }
+                --itemCombination;
+            }
+            throw new InvalidDataException($"Did not get through the security door");
         }
 
         public static void Run()
