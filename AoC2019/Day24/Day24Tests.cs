@@ -195,7 +195,7 @@ namespace Day24
         public void BioDiversityTests(string[] start, int expectedValue)
         {
             Program.ParseInput(start);
-            Assert.That(Program.BioDiversityRating, Is.EqualTo(expectedValue));
+            Assert.That(Program.BioDiversityRating(), Is.EqualTo(expectedValue));
         }
     }
 }
