@@ -237,9 +237,9 @@ namespace Day20
                 //OutputMap(false);
                 var result = ShortestPath(false);
                 Console.WriteLine($"Day20 : Result1 {result}");
-                if (result != 714)
+                if (result != 544)
                 {
-                    throw new InvalidDataException($"Part1 has been broken {result} != 714");
+                    throw new InvalidDataException($"Part1 has been broken {result} != 544");
                 }
             }
             else
@@ -248,9 +248,9 @@ namespace Day20
                 OutputMap(false);
                 var result = ShortestPath(true);
                 Console.WriteLine($"Day20 : Result2 {result}");
-                if (result != 7876)
+                if (result != 6238)
                 {
-                    throw new InvalidDataException($"Part2 has been broken {result} != 7876");
+                    throw new InvalidDataException($"Part2 has been broken {result} != 6238");
                 }
             }
         }

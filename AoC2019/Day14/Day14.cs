@@ -145,7 +145,7 @@ namespace Day14
             {
                 var result = MakeFuel();
                 Console.WriteLine($"Day14 Result1:{result}");
-                if (result != 346961)
+                if (result != 751038)
                 {
                     throw new InvalidProgramException($"Part1 is broken {result} != 346961");
                 }

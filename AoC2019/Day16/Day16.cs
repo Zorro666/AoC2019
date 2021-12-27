@@ -101,7 +101,7 @@ namespace Day16
             {
                 var result = RunFFTPart1(start, 100);
                 Console.WriteLine($"Day16 inputLen:{start.Length} part1:{result}");
-                var expected = "69549155";
+                var expected = "63483758";
                 if (result != expected)
                 {
                     throw new InvalidDataException($"Part1 is broken {result} should be {expected}");

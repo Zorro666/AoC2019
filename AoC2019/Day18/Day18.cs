@@ -271,9 +271,9 @@ namespace Day18
                 OutputMap(false);
                 var result = ShortestPath();
                 Console.WriteLine($"Day18 Part1:{result}");
-                if (4590 != result)
+                if (4250 != result)
                 {
-                    throw new InvalidOperationException($"ShortestRoute for part1 is wrong {result} != 4590");
+                    throw new InvalidOperationException($"ShortestRoute for part1 is wrong {result} != 4250");
                 }
             }
             else
@@ -282,9 +282,9 @@ namespace Day18
                 OutputMap(false);
                 var result = ShortestPath();
                 Console.WriteLine($"Day18 Part2:{result}");
-                if (2086 != result)
+                if (1640 != result)
                 {
-                    throw new InvalidOperationException($"ShortestRoute for part2 is wrong {result} != 2086");
+                    throw new InvalidOperationException($"ShortestRoute for part2 is wrong {result} != 1640");
                 }
             }
         }
@@ -469,7 +469,7 @@ namespace Day18
                     if (numSteps != -1)
                     {
                         char key = (char)('a' + k);
-                        Console.WriteLine($"{x},{y} Visible Key {key} {numSteps}");
+                        //Console.WriteLine($"{x},{y} Visible Key {key} {numSteps}");
                         if (sVisibleKeyStartNodes[k] >= 0)
                         {
                             throw new InvalidDataException($"Each key must belong to only one start location {key}");
@@ -607,12 +607,12 @@ namespace Day18
                 int startIndex = robotNodeIndexes[robotToMove];
                 int numSteps = Navigate(startIndex, endIndex, collectedKeys);
                 //int numSteps = 666;
-                Console.WriteLine($"Key {(char)('a' + key)} numSteps:{numSteps}");
+                //Console.WriteLine($"Key {(char)('a' + key)} numSteps:{numSteps}");
                 collectedKeys |= (1 << key);
                 pathLen += numSteps;
                 robotNodeIndexes[robotToMove] = endIndex;
             }
-            Console.WriteLine($"pathLen:{pathLen}");
+            //Console.WriteLine($"pathLen:{pathLen}");
         }
 
         public static void OutputMap(bool detailed)
@@ -817,8 +817,8 @@ namespace Day18
         public static void Run()
         {
             Console.WriteLine("Day18 : Start");
-            //_ = new Program("Day18/input.txt", true);
-            _ = new Program("Day18/input.txt", false);
+            _ = new Program("Day18/input.txt", true);
+            //_ = new Program("Day18/input.txt", false);
             Console.WriteLine("Day18 : End");
         }
     }

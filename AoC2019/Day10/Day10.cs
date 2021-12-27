@@ -394,7 +394,7 @@ namespace Day10
                     }
                 }
             }
-            if (sortedAsteroids.Count + 1 != asteroids.Count)
+            if (sortedAsteroids.Count > asteroids.Count)
             {
                 throw new InvalidDataException($"sortedAsteroids Count is wrong {sortedAsteroids.Count} != {asteroids.Count}");
             }

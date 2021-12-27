@@ -130,7 +130,7 @@ namespace Day17
     class Program
     {
         static IntProgram sIntProgram = new IntProgram();
-        static readonly int MAX_MAP_SIZE = 1024;
+        static readonly int MAX_MAP_SIZE = 2048;
         static readonly int MOVE_LEFT = -1;
         static readonly int MOVE_RIGHT = -2;
         static readonly int SUB_A = -3;

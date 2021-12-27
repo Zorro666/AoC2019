@@ -156,7 +156,7 @@ namespace Day15
             if (part1)
             {
                 Console.WriteLine($"Day15 : Result1 {result}");
-                if (result != 250)
+                if (result != 270)
                 {
                     throw new InvalidProgramException($"Part1 result has been broken {result}");
                 }

@@ -5,9 +5,10 @@ namespace AoC2019
 {
     class Program
     {
+        static bool runMulti = false;
         static void RunDay(int requestedDay, int thisDay, Action function)
         {
-            if ((requestedDay == -1) || (requestedDay == thisDay))
+            if ((requestedDay == -1) || (requestedDay == thisDay) || (runMulti && thisDay >= requestedDay))
             {
                 var watch = Stopwatch.StartNew();
                 function();
@@ -21,9 +22,11 @@ namespace AoC2019
         static void Main(string[] args)
         {
             var day = -1;
+            runMulti = false;
             if (args.Length == 1)
             {
-                day = int.Parse(args[0]);
+                runMulti = args[0].EndsWith("+");
+                day = int.Parse(args[0].TrimEnd('+'));
             }
             RunDay(day, 1, Day01.Program.Run);
             RunDay(day, 2, Day02.Program.Run);

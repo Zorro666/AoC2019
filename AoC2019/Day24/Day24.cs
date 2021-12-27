@@ -268,7 +268,7 @@ namespace Day24
                     }
                 }
                 Console.WriteLine($"Day24: Result1 {result1}");
-                var expected = 17863741;
+                var expected = 1151290;
                 if (result1 != expected)
                 {
                     throw new InvalidDataException($"Part1 is broken {result1} != {expected}");
@@ -280,7 +280,7 @@ namespace Day24
                 var result2 = TotalCount();
                 Console.WriteLine($"Day24: {sMinDepth} -> {sMaxDepth}");
                 Console.WriteLine($"Day24: Result2 {result2}");
-                var expected = 2029;
+                var expected = 1953;
                 if (result2 != expected)
                 {
                     throw new InvalidDataException($"Part2 is broken {result2} != {expected}");

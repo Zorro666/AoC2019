@@ -82,7 +82,7 @@ namespace Day11
             {
                 var result = RunProgram(source, 0);
                 Console.WriteLine($"Day11 : Result1 {result}");
-                if (result != 1967)
+                if (result != 1951)
                 {
                     throw new InvalidProgramException($"Part1 result has been broken {result}");
                 }

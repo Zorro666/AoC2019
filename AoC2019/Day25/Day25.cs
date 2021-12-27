@@ -59,8 +59,8 @@ namespace Day25
         static string[] sLastReplies;
         static bool[] sValidMoves;
         static string[] sItemsToPickup;
-        static List<string> sInventory = new List<string>(128);
-        static readonly int MAX_NUM_ROOMS = 1024;
+        static List<string> sInventory = new List<string>(256);
+        static readonly int MAX_NUM_ROOMS = 2048;
         static readonly bool[] sMapExplored = new bool[MAX_NUM_ROOMS];
         static int sRobotRoom = -1;
         static int sLastRoom = -1;
@@ -136,7 +136,7 @@ namespace Day25
                     currentRoom = node;
                 }
                 var result1 = FindDoorCombination();
-                var expected = 4362;
+                var expected = 805307408;
                 Console.WriteLine($"");
                 Console.WriteLine($"Day25: Part1 {result1}");
                 if (result1 != expected)
@@ -848,7 +848,10 @@ namespace Day25
                         }
                     }
                     Inventory();
-                    MoveSouth();
+                    //MoveSouth();
+                    //MoveWest();
+                    MoveEast();
+                    //MoveNorth();
                 }
                 if (sRobotRoom != sSecurityRoomNodeIndex)
                 {

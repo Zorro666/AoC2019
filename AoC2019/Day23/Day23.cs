@@ -61,7 +61,7 @@ namespace Day23
             {
                 long result1 = RunSimulation(part1);
                 Console.WriteLine($"Day23: Result1 {result1}");
-                long expected = 23626;
+                long expected = 24555;
                 if (result1 != expected)
                 {
                     throw new InvalidDataException($"Part1 result is broken {result1} != {expected}");
@@ -71,7 +71,7 @@ namespace Day23
             {
                 long result1 = RunSimulation(part1);
                 Console.WriteLine($"Day23: Result2 {result1}");
-                long expected = 19019;
+                long expected = 19463;
                 if (result1 != expected)
                 {
                     throw new InvalidDataException($"Part1 result is broken {result1} != {expected}");

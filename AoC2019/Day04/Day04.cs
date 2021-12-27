@@ -88,7 +88,7 @@ namespace Day04
             Console.WriteLine("Day04 : Start");
             var count1 = 0;
             var count2 = 0;
-            for (var password = 168630; password <= 718098; ++password)
+            for (var password = 273025; password <= 767253; ++password)
             {
                 if (ValidPassword(password, false))
                 {

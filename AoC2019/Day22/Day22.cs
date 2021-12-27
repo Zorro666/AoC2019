@@ -179,7 +179,7 @@ namespace Day22
                 CreateDeck(10007);
                 RunInstructions(instructions);
                 var result = FindCard(2019);
-                var expected = 6638;
+                var expected = 6850;
                 Console.WriteLine($"Day22: Result1 {result}");
                 if (result != expected)
                 {
@@ -223,7 +223,7 @@ namespace Day22
                 BigInteger result = (repeatedA * 2020 + repeatedB);
                 result = ModuloDeckSize(result);
                 Console.WriteLine($"Day22: Result2 {result}");
-                var expected = 77863024474406;
+                var expected = 13224103523662;
                 if (result != expected)
                 {
                     throw new InvalidDataException($"Part2 is broken {result} != {expected}");

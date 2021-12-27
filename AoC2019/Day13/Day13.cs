@@ -51,7 +51,7 @@ namespace Day13
                 RunProgram(source, false);
                 var result = CountBlocks();
                 Console.WriteLine($"Day13 : Result1 {result}");
-                if (result != 296)
+                if (result != 239)
                 {
                     throw new InvalidProgramException($"Part1 result has been broken {result}");
                 }
