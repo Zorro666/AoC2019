@@ -130,7 +130,7 @@ namespace Day17
     class Program
     {
         static IntProgram sIntProgram = new IntProgram();
-        static readonly int MAX_MAP_SIZE = 2048;
+        static readonly int MAX_MAP_SIZE = 128;
         static readonly int MOVE_LEFT = -1;
         static readonly int MOVE_RIGHT = -2;
         static readonly int SUB_A = -3;
@@ -176,7 +176,7 @@ namespace Day17
                     result += intersection.X * intersection.Y;
                 }
                 Console.WriteLine($"Day17 : Result1 {result}");
-                if (result != 4864)
+                if (result != 3448)
                 {
                     throw new InvalidProgramException($"Part1 result has been broken {result}");
                 }
@@ -192,7 +192,7 @@ namespace Day17
                 sIntProgram.SetData(0, 2);
                 var result = RunProgramWithInput();
                 Console.WriteLine($"Day17 : Result2 {result}");
-                if (result != 840248)
+                if (result != 762405)
                 {
                     throw new InvalidProgramException($"Part2 result has been broken {result}");
                 }
@@ -208,8 +208,8 @@ namespace Day17
             var movesCount = inMoves.Count;
             for (int patternStartPos = 0; patternStartPos < movesCount; patternStartPos++)
             {
-                int maxPatternLength = Math.Min(10, movesCount - patternStartPos);
-                for (int patternLength = 2; patternLength < maxPatternLength; patternLength++)
+                int maxPatternLength = Math.Min(20, movesCount - patternStartPos);
+                for (int patternLength = 1; patternLength < maxPatternLength; patternLength++)
                 {
                     List<int> pattern = new List<int>();
                     for (int i = 0; i < patternLength; ++i)
@@ -252,19 +252,19 @@ namespace Day17
                         if (patternName == SUB_A)
                         {
                             //Console.WriteLine($"Pattern A");
-                            //OutputPattern(pattern);
+                            //OutputPattern(SUB_A, pattern);
                             FindPattern(newMoves, SUB_B);
                         }
                         else if (patternName == SUB_B)
                         {
                             //Console.WriteLine($"Pattern B");
-                            //OutputPattern(pattern);
+                            //OutputPattern(SUB_B, pattern);
                             FindPattern(newMoves, SUB_C);
                         }
                         else if (patternName == SUB_C)
                         {
                             //Console.WriteLine($"Pattern C");
-                            //OutputPattern(pattern);
+                            //OutputPattern(SUB_C, pattern);
                         }
                     }
                     if (sFoundSolution)
@@ -697,7 +697,7 @@ namespace Day17
         {
             bool halt = false;
             bool hasOutput = false;
-            var output = sIntProgram.RunProgram(ref halt, ref hasOutput);
+            var output = sIntProgram.GetNextOutput(ref halt, ref hasOutput);
             if (halt && hasOutput)
             {
                 throw new InvalidDataException($"halt and hasOutput can't be both true");
