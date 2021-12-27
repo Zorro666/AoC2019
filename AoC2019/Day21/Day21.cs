@@ -152,9 +152,9 @@ namespace Day21
                 SetSpringScriptProgram(true);
                 var result = RunSpringScript();
                 Console.WriteLine($"Day21: Result1 {result}");
-                if (result != 19354818)
+                if (result != 19355391)
                 {
-                    throw new InvalidDataException($"Part1 is broken {result} != 19354818");
+                    throw new InvalidDataException($"Part1 is broken {result} != 19355391");
                 }
             }
             else
@@ -190,13 +190,12 @@ namespace Day21
                 SetSpringScriptProgram(false);
                 var result = RunSpringScript();
                 Console.WriteLine($"Day21: Result2 {result}");
-                if (result != 1143787220)
+                if (result != 1143770635)
                 {
-                    throw new InvalidDataException($"Part1 is broken {result} != 1143787220");
+                    throw new InvalidDataException($"Part1 is broken {result} != 1143770635");
                 }
             }
         }
-
 
         static private long RunSpringScript()
         {
@@ -207,7 +206,7 @@ namespace Day21
             {
                 halt = false;
                 bool hasOutput = false;
-                long result = sProgram.RunProgram(ref halt, ref hasOutput);
+                long result = sProgram.GetNextOutput(ref halt, ref hasOutput);
                 if ((result >= 10) && (result < 255))
                 {
                     char c = (char)result;

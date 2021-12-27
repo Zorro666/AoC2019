@@ -69,17 +69,6 @@ struct IntProgram
         //Console.WriteLine($"mData[{index}] {mData[index]}");
     }
 
-    public long RunProgram(ref bool halt, ref bool hasOutput)
-    {
-        bool readInput = false;
-        long result = -666;
-        while (!halt)
-        {
-            result = SingleStep(ref halt, ref hasOutput, ref readInput);
-        };
-        return result;
-    }
-
     public long GetNextOutput(ref bool halt, ref bool hasOutput)
     {
         bool readInput = false;
