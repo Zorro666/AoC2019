@@ -222,7 +222,8 @@ namespace Day10
             }
             else
             {
-                var sortedAsteroids = SortAsteroidsFromPoint(13, 17);
+                var bestAsteroid = ComputeBestAsteroid();
+                var sortedAsteroids = SortAsteroidsFromPoint(bestAsteroid.Item1, bestAsteroid.Item2);
                 var result = sortedAsteroids[200 - 1];
                 Console.WriteLine($"Day10 : Result2 {result}");
                 Console.WriteLine($"Day10 : Result2 {result.Item1 * 100 + result.Item2}");
