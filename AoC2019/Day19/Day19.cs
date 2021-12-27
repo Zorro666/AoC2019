@@ -100,9 +100,9 @@ namespace Day19
                 //OutputMap();
                 var result = CountAffected();
                 Console.WriteLine($"Day19 : Result1 {result}");
-                if (116 != result)
+                if (171 != result)
                 {
-                    throw new InvalidDataException($"Part1 result has been broken {result} != 116");
+                    throw new InvalidDataException($"Part1 result has been broken {result} != 171");
                 }
             }
             else
@@ -119,9 +119,9 @@ namespace Day19
                 var y = topEdge;
                 var result = x * 10000 + y;
                 Console.WriteLine($"Day19 : Result2 {result}");
-                if (10311666 != result)
+                if (9741242 != result)
                 {
-                    throw new InvalidDataException($"Part2 result has been broken {result} != 10311666");
+                    throw new InvalidDataException($"Part2 result has been broken {result} != 9741242");
                 }
             }
         }
@@ -159,7 +159,7 @@ namespace Day19
                     inputs[1] = y;
                     sProgram.Reset();
                     sProgram.SetInputData(inputs);
-                    result = sProgram.RunProgram(ref halt, ref hasOutput);
+                    result = sProgram.GetNextOutput(ref halt, ref hasOutput);
                     if (result == 1)
                     {
                         if (!beamStarted)
@@ -254,7 +254,7 @@ namespace Day19
                     inputs[1] = y;
                     sProgram.Reset();
                     sProgram.SetInputData(inputs);
-                    result = sProgram.RunProgram(ref halt, ref hasOutput);
+                    result = sProgram.GetNextOutput(ref halt, ref hasOutput);
                     char output = result == 1 ? '#' : '.';
                     sMap[x, y] = output;
                     if (result == 1)
